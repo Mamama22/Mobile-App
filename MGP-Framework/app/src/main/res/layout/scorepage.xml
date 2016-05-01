@@ -1,0 +1,54 @@
+<RelativeLayout
+    xmlns:android = "http://schemas.android.com/apk/res/android"
+    xmlns:tools = "http://schemas.android.com/tools"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:orientation = "horizontal"
+    tools:context = ".ScorePage"
+    android:id="@+id/Layout"
+    android:background="#020202">
+
+    <Button
+        android:id = "@+id/btn_back"
+        android:layout_width="50dp"
+        android:layout_height="50dp"
+        android:background = "@drawable/button_back"
+
+        android:layout_alignParentBottom="true"
+        android:layout_alignParentStart="true" />
+
+    <TextView
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:textAppearance="?android:attr/textAppearanceLarge"
+        android:text="Leaderboard"
+        android:id="@+id/textView"
+        android:textColor="#ceef17"
+        android:layout_alignParentTop="true"
+        android:layout_centerHorizontal="true"
+        android:layout_marginTop="33dp" />
+
+    <TextView
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:textAppearance="?android:attr/textAppearanceMedium"
+        android:id = "@+id/highscoretext"
+        android:text="High Score: "
+        android:layout_marginEnd="63dp"
+        android:layout_marginTop="54dp"
+        android:textColor="#13fe52"
+        android:layout_below="@+id/textView"
+        android:layout_alignEnd="@+id/textView" />
+
+    <TextView
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:textAppearance="?android:attr/textAppearanceMedium"
+        android:id = "@+id/currentscoretext"
+        android:text="Current Score: "
+        android:textColor="#13fe52"
+        android:layout_above="@+id/btn_back"
+        android:layout_alignStart="@+id/highscoretext"
+        android:layout_marginBottom="51dp" />
+
+</RelativeLayout>

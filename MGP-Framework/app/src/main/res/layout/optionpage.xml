@@ -1,0 +1,50 @@
+<RelativeLayout
+    xmlns:android = "http://schemas.android.com/apk/res/android"
+    xmlns:tools = "http://schemas.android.com/tools"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:background = "@drawable/optionpage"
+    android:orientation = "horizontal"
+    tools:context = ".OptionPage">
+
+    <Button
+        android:id = "@+id/btn_back"
+        android:layout_width="50dp"
+        android:layout_height="50dp"
+        android:background = "@drawable/button_back"
+
+        android:layout_alignParentBottom="true"
+        android:layout_alignParentStart="true" />
+
+    <SeekBar
+        android:id = "@+id/seekBar"
+        android:layout_width="250dp"
+        android:layout_height="wrap_content"
+        android:progress="0"
+        android:max = "100"
+
+        android:layout_alignTop="@+id/textView"
+        android:layout_alignParentEnd="true"
+        android:layout_marginEnd="121dp" />
+
+    <TextView
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="Screen Brightness: "
+        android:textColor="#f7c003"
+        android:id="@+id/textView"
+        android:layout_alignParentTop="true"
+        android:layout_toStartOf="@+id/seekBar"
+        android:layout_marginTop="109dp" />
+
+    <CheckBox
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="Turn Background Music Off"
+        android:id="@+id/checkBox"
+
+        android:layout_marginTop="40dp"
+        android:textColor="#f1f908"
+        android:checked="false" />
+
+</RelativeLayout>

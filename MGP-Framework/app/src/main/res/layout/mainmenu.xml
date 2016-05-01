@@ -1,0 +1,62 @@
+<RelativeLayout
+    xmlns:android = "http://schemas.android.com/apk/res/android"
+    xmlns:tools = "http://schemas.android.com/tools"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:background = "@drawable/mainmenu_bg"
+    android:screenOrientation = "landscape"
+    tools:context = ".MainMenu">
+
+
+    <Button
+        android:id = "@+id/btn_start"
+        android:layout_width="110dp"
+        android:layout_height="60dp"
+        android:background="#6dce5d"
+        android:text="Play Game"
+        android:textColor="#1b33e5"
+
+        android:layout_above="@+id/btn_option"
+        android:layout_centerHorizontal="true"
+        android:layout_marginBottom="38dp" />
+
+    <Button
+        android:id = "@+id/btn_option"
+        android:layout_width="50dp"
+        android:layout_height="50dp"
+        android:background = "@drawable/option"
+
+        android:layout_alignParentBottom="true"
+        android:layout_alignParentStart="true" />
+
+    <Button
+        android:id="@+id/btn_gallery"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:background="#6dce5d"
+        android:text="Gallery"
+        android:textColor="#3f374f"
+        android:layout_below="@+id/btn_start"
+        android:layout_alignParentEnd="true" />
+
+    <Button
+        android:id="@+id/btn_score"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:background="#6dce5d"
+        android:text="Score"
+        android:textColor="#0008a5"
+        android:layout_alignParentTop="true"
+        android:layout_alignParentEnd="true" />
+
+    <Button
+        android:id="@+id/btn_facebook"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:background="#6dce5d"
+        android:text="Facebook"
+        android:textColor="#d94949"
+        android:layout_alignParentTop="true"
+        android:layout_alignParentStart="true" />
+
+</RelativeLayout>

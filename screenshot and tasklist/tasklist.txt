@@ -1,0 +1,21 @@
+Tasklist Features
+
+Lim Jin:
+- Link the app to Facebook
+- Sharedpreferences to link the score to Faecbok
+- Alert Dialog
+- Controller (State Manager) to control manage the scenes
+- Scene, a base class to inherit to create a game scene.
+- Level Selection
+-Level 3-5
+
+
+Tan Yie Cher
+- Improved the gameplay elements:
+ -Garbage
+ -Dustbin
+ -Catapult
+ -Blocks (walls)
+-Object
+-Level manager (Save level data in string for improved memory usage)
+-Level 1-2

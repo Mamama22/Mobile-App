@@ -19,7 +19,7 @@ public class GamePanelSurfaceView extends SurfaceView implements SurfaceHolder.C
     /**********************************************
      * System
      *********************************************/
-    // Thread to control the rendering----------------------//
+    // Thread to run----------------------//
     private GameThread myThread = null;
 
     // Variables for FPS---------------------------//
@@ -80,7 +80,6 @@ public class GamePanelSurfaceView extends SurfaceView implements SurfaceHolder.C
 
         // Create the thread
         if (!myThread.isAlive()) {
-            myThread = new GameThread(getHolder(), this);
             myThread.startRun(true);
             myThread.start();
         }

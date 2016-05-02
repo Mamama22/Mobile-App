@@ -22,7 +22,7 @@ public class GamePage extends Activity{
         getWindow().setFlags(WindowManager.LayoutParams.FLAG_FULLSCREEN, WindowManager.LayoutParams.FLAG_FULLSCREEN); //hide top bar
 
         //Create game 'thread'-------------------------------//
-        setContentView(new GamePanelSurfaceView(this));
+        setContentView(new Controller(this));
     }
 
     protected void onPause(){

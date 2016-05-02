@@ -4,6 +4,7 @@ import android.content.Context;
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
 import android.graphics.Canvas;
+import android.graphics.Color;
 import android.view.MotionEvent;
 import android.view.SurfaceHolder;
 import android.view.SurfaceView;
@@ -66,7 +67,7 @@ public class Controller extends SurfaceView implements SurfaceHolder.Callback {
 
         //test object-----------------------//
         testPos.Set(800, 0);
-        testScale.Set(100, 787);
+        testScale.Set(100, 393.5f);
         testObj = Draw.SetBitmap(testScale.x, testScale.y, R.drawable.rubbish, getResources());
 
         // Make the GamePanel focusable so it can handle events------------------------//
@@ -171,8 +172,15 @@ public class Controller extends SurfaceView implements SurfaceHolder.Callback {
                     break;
                 }
 
+                //Clear screen-------------------------//
+                Draw.canvas.drawColor(Color.BLACK);
+
                 //render gameplay-----------------------------//
                 RenderGameplay(canvas);
+
+                //Text--------------------------------------//
+                String FPS_str = "FPS: " + Draw.FPS;
+                Draw.DrawText(FPS_str, 0.f, 0.f, 100.f);
             }
             break;
         }
@@ -191,14 +199,10 @@ public class Controller extends SurfaceView implements SurfaceHolder.Callback {
 
         //bg----------------------------------------------------------//
         Draw.canvas.drawBitmap(scaledbg, bgX, bgY, null);
-        Draw.canvas.drawBitmap(scaledbg, bgX + Draw.ScreenWidth, bgY, null);
+        //Draw.canvas.drawBitmap(scaledbg, bgX + Draw.ScreenWidth, bgY, null);
 
         //draw test obj-------------------//
-        Draw.DrawBitmap(testObj, testPos, testScale);
-
-        //text---------------------------//
-        String FPS_str = "FPS: " + Draw.FPS;
-        Draw.DrawText(FPS_str, 0.f, 0.f, 100.f);
+        //Draw.DrawBitmap(testObj, testPos, testScale);
     }
 }
 

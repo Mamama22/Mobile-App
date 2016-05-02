@@ -93,7 +93,8 @@ public class ControllerThread extends Thread {
                         if (getPause() == false)
                         {
                             //functions to call every loop---------------------//
-
+                            myView.Update(dt, fps);
+                            myView.Draw(c);
                         }
                     }
                 }

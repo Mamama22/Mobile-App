@@ -88,6 +88,12 @@ public class Square {
         // Set color for drawing the triangle
         GLES20.glUniform4fv(mColorHandle, 1, color, 0);
 
+        // get handle to shape's transformation matrix
+        gl_renderer.mMVPMatrixHandle = GLES20.glGetUniformLocation(gl_renderer.mProgram, "uMVPMatrix");
+
+        // Pass the projection and view transformation to the shader
+        GLES20.glUniformMatrix4fv(gl_renderer.mMVPMatrixHandle, 1, false, gl_renderer.mMVPMatrix, 0);
+
         // Draw the square (PASS IN DRAW ORDER LOLZ)------------------------------//
         GLES20.glDrawElements(
                 GLES20.GL_TRIANGLES, drawOrder.length,

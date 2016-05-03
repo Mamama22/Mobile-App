@@ -9,9 +9,13 @@ import android.util.Log;
 
 import javax.microedition.khronos.egl.EGLConfig;
 import javax.microedition.khronos.opengles.GL10;
+import android.opengl.Matrix;
 
 /*************************************************************************************************
  * Gameloop abstract class, inherit to create your own
+ *
+ * Note:
+ * Need recreate shaders everytime reset?
  *************************************************************************************************/
 public abstract class GLRenderer implements Renderer {
 
@@ -20,9 +24,15 @@ public abstract class GLRenderer implements Renderer {
      *************************************************************************************************/
     //shaders------------------------------------------//
     protected final String vertexShaderCode =
-            "attribute vec4 vPosition;" +
+            // This matrix member variable provides a hook to manipulate
+            // the coordinates of the objects that use this vertex shader
+            "uniform mat4 uMVPMatrix;" +
+                    "attribute vec4 vPosition;" +
                     "void main() {" +
-                    "  gl_Position = vPosition;" +
+                    // the matrix must be included as a modifier of gl_Position
+                    // Note that the uMVPMatrix factor *must be first* in order
+                    // for the matrix multiplication product to be correct.
+                    "  gl_Position = uMVPMatrix * vPosition;" +
                     "}";
 
     protected final String fragmentShaderCode =
@@ -33,6 +43,14 @@ public abstract class GLRenderer implements Renderer {
                     "}";
 
     public int mProgram = 0;
+
+    // Use to access and set the view transformation
+    public int mMVPMatrixHandle = 0;
+
+    // mMVPMatrix is an abbreviation for "Model View Projection Matrix"
+    public final float[] mMVPMatrix = new float[16];
+    public final float[] mProjectionMatrix = new float[16];
+    public final float[] mViewMatrix = new float[16];
 
     //Flags----------------------------//
     private boolean mFirstDraw;
@@ -117,8 +135,18 @@ public abstract class GLRenderer implements Renderer {
         mWidth = width;
         mHeight = height;
 
+        //Need recreate shaders everytime reset?-----------------------//
         onCreate(mWidth, mHeight, mSurfaceCreated);
         mSurfaceCreated = false;
+
+        //Projection-----------------------------------//
+        GLES20.glViewport(0, 0, width, height);
+
+        float ratio = (float) width / height;
+
+        // this projection matrix is applied to object coordinates
+        // in the onDrawFrame() method
+        Matrix.frustumM(mProjectionMatrix, 0, -ratio, ratio, -1, 1, 3, 7);
     }
 
     @Override
@@ -133,9 +161,17 @@ public abstract class GLRenderer implements Renderer {
             mLastTime = currentTime;
         }
 
+        //Flags---------------------------------------------//
         if (mFirstDraw) {
             mFirstDraw = false;
         }
+
+        //Projection and camera View---------------------------------------------//
+        // Set the camera position (View matrix)
+        Matrix.setLookAtM(mViewMatrix, 0, 0, 0, -3, 0f, 0f, 0f, 0f, 1.0f, 0.0f);
+
+        // Calculate the projection and view transformation
+        Matrix.multiplyMM(mMVPMatrix, 0, mProjectionMatrix, 0, mViewMatrix, 0);
     }
 
     public int getFPS() {return mFPS;}

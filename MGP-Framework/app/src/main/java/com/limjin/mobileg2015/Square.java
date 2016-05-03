@@ -5,6 +5,7 @@ import java.nio.ByteOrder;
 import java.nio.FloatBuffer;
 import java.nio.ShortBuffer;
 import android.opengl.GLES20;
+import android.opengl.Matrix;
 
 /**
  * Created by tanyiecher on 2/5/2016.
@@ -27,6 +28,9 @@ public class Square {
     private int mPositionHandle;
     private int mColorHandle;
 
+    //rotation---------------------------//
+    private float angle = 0.f;
+
     // Set color with red, green, blue and alpha (opacity) values--------------------//
     float color[] = { 0.63671875f, 0.76953125f, 0.22265625f, 1.0f };
 
@@ -36,7 +40,7 @@ public class Square {
             -0.5f,  0.5f, 0.0f,   // top left
             -0.5f, -0.5f, 0.0f,   // bottom left
             0.5f, -0.5f, 0.0f,   // bottom right
-            0.5f,  0.5f, 0.0f }; // top right
+            0.9f,  0.5f, 0.0f }; // top right
 
     private short drawOrder[] = { 0, 1, 2, 0, 2, 3 }; // order to draw vertices
 
@@ -68,6 +72,18 @@ public class Square {
 
     public void draw(GLRenderer gl_renderer)
     {
+        //============================= ROTATION TRANSFORMATION =============================//
+        float[] scratch = new float[16];    //Push/pop matrix!!!!
+
+        angle += 2.f;
+        Matrix.setRotateM(gl_renderer.mRotationMatrix, 0, angle, 0, 0, -1.0f);
+
+        // Combine the rotation matrix with the projection and camera view
+        // Note that the mMVPMatrix factor *must be first* in order
+        // for the matrix multiplication product to be correct.
+        Matrix.multiplyMM(scratch, 0, gl_renderer.mMVPMatrix, 0, gl_renderer.mRotationMatrix, 0);
+        //===================================================================================//
+
         // Add program to OpenGL ES environment
         GLES20.glUseProgram(gl_renderer.mProgram);
 
@@ -92,7 +108,7 @@ public class Square {
         gl_renderer.mMVPMatrixHandle = GLES20.glGetUniformLocation(gl_renderer.mProgram, "uMVPMatrix");
 
         // Pass the projection and view transformation to the shader
-        GLES20.glUniformMatrix4fv(gl_renderer.mMVPMatrixHandle, 1, false, gl_renderer.mMVPMatrix, 0);
+        GLES20.glUniformMatrix4fv(gl_renderer.mMVPMatrixHandle, 1, false, scratch, 0);
 
         // Draw the square (PASS IN DRAW ORDER LOLZ)------------------------------//
         GLES20.glDrawElements(

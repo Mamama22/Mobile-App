@@ -52,6 +52,9 @@ public abstract class GLRenderer implements Renderer {
     public final float[] mProjectionMatrix = new float[16];
     public final float[] mViewMatrix = new float[16];
 
+    //modelStack
+    public float[] mRotationMatrix = new float[16];
+
     //Flags----------------------------//
     private boolean mFirstDraw;
     private boolean mSurfaceCreated;
@@ -143,10 +146,13 @@ public abstract class GLRenderer implements Renderer {
         GLES20.glViewport(0, 0, width, height);
 
         float ratio = (float) width / height;
+        ratio *= 2; //make screen bigger
 
         // this projection matrix is applied to object coordinates
         // in the onDrawFrame() method
-        Matrix.frustumM(mProjectionMatrix, 0, -ratio, ratio, -1, 1, 3, 7);
+        //clip planes: define how large the screen is
+        //float[] m, int offset, float left, float right, float bottom, float top, float near, float far
+        Matrix.frustumM(mProjectionMatrix, 0, -ratio, ratio, -2, 2, 3, 7);
     }
 
     @Override
@@ -168,7 +174,9 @@ public abstract class GLRenderer implements Renderer {
 
         //Projection and camera View---------------------------------------------//
         // Set the camera position (View matrix)
-        Matrix.setLookAtM(mViewMatrix, 0, 0, 0, -3, 0f, 0f, 0f, 0f, 1.0f, 0.0f);
+        //float[] rm, int rmOffset, float eyeX, float eyeY, float eyeZ,
+        //float centerX, float centerY, float centerZ, float upX, float upY, float upZ
+        Matrix.setLookAtM(mViewMatrix, 0, 0, 0, 3.f, 0f, 0f, 0f, 0f, 1.0f, 0.0f);
 
         // Calculate the projection and view transformation
         Matrix.multiplyMM(mMVPMatrix, 0, mProjectionMatrix, 0, mViewMatrix, 0);

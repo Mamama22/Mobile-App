@@ -5,7 +5,6 @@ package com.limjin.mobileg2015;
  */
 import android.opengl.GLES20;
 import android.opengl.GLSurfaceView.Renderer;
-import android.util.Log;
 
 import javax.microedition.khronos.egl.EGLConfig;
 import javax.microedition.khronos.opengles.GL10;
@@ -23,37 +22,62 @@ public abstract class GLRenderer implements Renderer {
      * Variables
      *************************************************************************************************/
     //shaders------------------------------------------//
-    protected final String vertexShaderCode =
-            // This matrix member variable provides a hook to manipulate
-            // the coordinates of the objects that use this vertex shader
-            "uniform mat4 uMVPMatrix;" +
-                    "attribute vec4 vPosition;" +
-                    "void main() {" +
-                    // the matrix must be included as a modifier of gl_Position
-                    // Note that the uMVPMatrix factor *must be first* in order
-                    // for the matrix multiplication product to be correct.
-                    "  gl_Position = uMVPMatrix * vPosition;" +
-                    "}";
+    protected final static String vertexShader =
+            "uniform mat4 u_MVPMatrix;      \n"     // A constant representing the combined model/view/projection matrix.
 
-    protected final String fragmentShaderCode =
-            "precision mediump float;" +
-                    "uniform vec4 vColor;" +
-                    "void main() {" +
-                    "  gl_FragColor = vColor;" +
-                    "}";
+                    + "attribute vec4 a_Position;     \n"     // Per-vertex position information we will pass in.
+                    + "attribute vec4 a_Color;        \n"     // Per-vertex color information we will pass in.
 
-    public int mProgram = 0;
+                    + "varying vec4 v_Color;          \n"     // This will be passed into the fragment shader.
 
-    // Use to access and set the view transformation
-    public int mMVPMatrixHandle = 0;
+                    + "void main()                    \n"     // The entry point for our vertex shader.
+                    + "{                              \n"
+                    + "   v_Color = a_Color;          \n"     // Pass the color through to the fragment shader.
+                    // It will be interpolated across the triangle.
+                    + "   gl_Position = u_MVPMatrix   \n"     // gl_Position is a special variable used to store the final position.
+                    + "               * a_Position;   \n"     // Multiply the vertex by the matrix to get the final point in
+                    + "}                              \n";    // normalized screen coordinates.
 
-    // mMVPMatrix is an abbreviation for "Model View Projection Matrix"
-    public final float[] mMVPMatrix = new float[16];
-    public final float[] mProjectionMatrix = new float[16];
-    public final float[] mViewMatrix = new float[16];
+    protected final static String fragmentShader =
+            "precision mediump float;       \n"     // Set the default precision to medium. We don't need as high of a
+                    // precision in the fragment shader.
+                    + "varying vec4 v_Color;          \n"     // This is the color from the vertex shader interpolated across the
+                    // triangle per fragment.
+                    + "void main()                    \n"     // The entry point for our fragment shader.
+                    + "{                              \n"
+                    + "   gl_FragColor = v_Color;     \n"     // Pass the color directly through the pipeline.
+                    + "}                              \n";
 
-    //modelStack
-    public float[] mRotationMatrix = new float[16];
+    //Handles----------------------------------------------------------------//
+    protected int programHandle = 0;    //program
+    protected int vertexShaderHandle = 0;  //shaders
+    protected int fragmentShaderHandle = 0;
+
+    //New class members
+    /** This will be used to pass in the transformation matrix. */
+    protected int mMVPMatrixHandle;
+
+    /** This will be used to pass in model position information. */
+    protected int mPositionHandle;
+
+    /** This will be used to pass in model color information. */
+    protected int mColorHandle;
+
+    //Matrices---------------------------------------------------------------------//
+    /** Store the projection matrix. This is used to project the scene onto a 2D viewport. */
+    protected float[] mProjectionMatrix = new float[16];
+
+    /**
+     * Store the view matrix. This can be thought of as our camera. This matrix transforms world space to eye space;
+     * it positions things relative to our eye.
+     */
+    protected float[] mViewMatrix = new float[16];
+
+    /**
+     * Store the model matrix. This matrix is used to move models from object space (where each model can be thought
+     * of being located at the center of the universe) to world space. LIKE MODEL STACK
+     */
+    protected float[] mModelMatrix = new float[16];
 
     //Flags----------------------------//
     private boolean mFirstDraw;
@@ -81,18 +105,37 @@ public abstract class GLRenderer implements Renderer {
 
     /*************************************************************************************************
      * Load shader
+     * param type: shader type
      *************************************************************************************************/
-    public static int loadShader(int type, String shaderCode){
+    public static int LoadShader(int type, String shaderCode){
 
-        // create a vertex shader type (GLES20.GL_VERTEX_SHADER)
-        // or a fragment shader type (GLES20.GL_FRAGMENT_SHADER)
-        int shader = GLES20.glCreateShader(type);
+        // Load in the vertex shader.
+        int ShaderHandle = GLES20.glCreateShader(type);
 
-        // add the source code to the shader and compile it
-        GLES20.glShaderSource(shader, shaderCode);
-        GLES20.glCompileShader(shader);
+        if (ShaderHandle != 0)
+        {
+            // Pass in the shader source.
+            GLES20.glShaderSource(ShaderHandle, shaderCode);
 
-        return shader;
+            // Compile the shader.
+            GLES20.glCompileShader(ShaderHandle);
+
+            // Get the compilation status.
+            final int[] compileStatus = new int[1];
+            GLES20.glGetShaderiv(ShaderHandle, GLES20.GL_COMPILE_STATUS, compileStatus, 0);
+
+            // If the compilation failed, delete the shader.
+            if (compileStatus[0] == 0)
+            {
+                GLES20.glDeleteShader(ShaderHandle);
+                ShaderHandle = 0;
+            }
+        }
+
+        if (ShaderHandle == 0)
+            throw new RuntimeException("Error creating vertex shader.");
+
+        return ShaderHandle;
     }
 
     /*************************************************************************************************
@@ -100,22 +143,43 @@ public abstract class GLRenderer implements Renderer {
      *************************************************************************************************/
     private void initShaders() {
 
-        int vertexShader = loadShader(GLES20.GL_VERTEX_SHADER,
-                vertexShaderCode);
-        int fragmentShader = loadShader(GLES20.GL_FRAGMENT_SHADER,
-                fragmentShaderCode);
+        vertexShaderHandle = LoadShader(GLES20.GL_VERTEX_SHADER, vertexShader);
+        fragmentShaderHandle = LoadShader(GLES20.GL_FRAGMENT_SHADER, fragmentShader);
 
-        // create empty OpenGL ES Program
-        mProgram = GLES20.glCreateProgram();
+        // Create a program object and store the handle to it.
+        programHandle = GLES20.glCreateProgram();
 
-        // add the vertex shader to program
-        GLES20.glAttachShader(mProgram, vertexShader);
+        if (programHandle != 0)
+        {
+            // Bind the vertex shader to the program.
+            GLES20.glAttachShader(programHandle, vertexShaderHandle);
 
-        // add the fragment shader to program
-        GLES20.glAttachShader(mProgram, fragmentShader);
+            // Bind the fragment shader to the program.
+            GLES20.glAttachShader(programHandle, fragmentShaderHandle);
 
-        // creates OpenGL ES program executables
-        GLES20.glLinkProgram(mProgram);
+            // Bind attributes
+            GLES20.glBindAttribLocation(programHandle, 0, "a_Position");
+            GLES20.glBindAttribLocation(programHandle, 1, "a_Color");
+
+            // Link the two shaders together into a program.
+            GLES20.glLinkProgram(programHandle);
+
+            // Get the link status.
+            final int[] linkStatus = new int[1];
+            GLES20.glGetProgramiv(programHandle, GLES20.GL_LINK_STATUS, linkStatus, 0);
+
+            // If the link failed, delete the program.
+            if (linkStatus[0] == 0)
+            {
+                GLES20.glDeleteProgram(programHandle);
+                programHandle = 0;
+            }
+        }
+
+        if (programHandle == 0)
+        {
+            throw new RuntimeException("Error creating program.");
+        }
     }
 
     /*************************************************************************************************
@@ -123,10 +187,43 @@ public abstract class GLRenderer implements Renderer {
      *************************************************************************************************/
     public void onSurfaceCreated(GL10 notUsed,
                                  EGLConfig config) {
-
         mSurfaceCreated = true;
         mWidth = -1;
         mHeight = -1;
+
+        //init shaders------------------------------//
+        initShaders();
+
+        // Set program handles. These will later be used to pass in values to the program.
+        mMVPMatrixHandle = GLES20.glGetUniformLocation(programHandle, "u_MVPMatrix");
+        mPositionHandle = GLES20.glGetAttribLocation(programHandle, "a_Position");
+        mColorHandle = GLES20.glGetAttribLocation(programHandle, "a_Color");
+
+        // Tell OpenGL to use this program when rendering.
+        GLES20.glUseProgram(programHandle);
+
+        // Set the background clear color to gray.
+        GLES20.glClearColor(0.5f, 0.5f, 0.5f, 0.5f);
+
+        // Position the eye behind the origin.
+        final float eyeX = 0.0f;
+        final float eyeY = 0.0f;
+        final float eyeZ = 1.5f;
+
+        // We are looking toward the distance
+        final float lookX = 0.0f;
+        final float lookY = 0.0f;
+        final float lookZ = -5.0f;
+
+        // Set our up vector. This is where our head would be pointing were we holding the camera.
+        final float upX = 0.0f;
+        final float upY = 1.0f;
+        final float upZ = 0.0f;
+
+        // Set the view matrix. This matrix can be said to represent the camera position.
+        // NOTE: In OpenGL 1, a ModelView matrix is used, which is a combination of a model and
+        // view matrix. In OpenGL 2, we can keep track of these matrices separately if we choose.
+        Matrix.setLookAtM(mViewMatrix, 0, eyeX, eyeY, eyeZ, lookX, lookY, lookZ, upX, upY, upZ);
     }
 
     @Override
@@ -142,17 +239,21 @@ public abstract class GLRenderer implements Renderer {
         onCreate(mWidth, mHeight, mSurfaceCreated);
         mSurfaceCreated = false;
 
-        //Projection-----------------------------------//
+        //projection------------------------------------------------------------------//
+        // Set the OpenGL viewport to the same size as the surface.
         GLES20.glViewport(0, 0, width, height);
 
-        float ratio = (float) width / height;
-        ratio *= 2; //make screen bigger
+        // Create a new perspective projection matrix. The height will stay the same
+        // while the width will vary as per aspect ratio.
+        final float ratio = (float) width / height;
+        final float left = -ratio;
+        final float right = ratio;
+        final float bottom = -1.0f;
+        final float top = 1.0f;
+        final float near = 1.0f;
+        final float far = 10.0f;
 
-        // this projection matrix is applied to object coordinates
-        // in the onDrawFrame() method
-        //clip planes: define how large the screen is
-        //float[] m, int offset, float left, float right, float bottom, float top, float near, float far
-        Matrix.frustumM(mProjectionMatrix, 0, -ratio, ratio, -2, 2, 3, 7);
+        Matrix.frustumM(mProjectionMatrix, 0, left, right, bottom, top, near, far);
     }
 
     @Override
@@ -171,28 +272,18 @@ public abstract class GLRenderer implements Renderer {
         if (mFirstDraw) {
             mFirstDraw = false;
         }
-
-        //Projection and camera View---------------------------------------------//
-        // Set the camera position (View matrix)
-        //float[] rm, int rmOffset, float eyeX, float eyeY, float eyeZ,
-        //float centerX, float centerY, float centerZ, float upX, float upY, float upZ
-        Matrix.setLookAtM(mViewMatrix, 0, 0, 0, 3.f, 0f, 0f, 0f, 0f, 1.0f, 0.0f);
-
-        // Calculate the projection and view transformation
-        Matrix.multiplyMM(mMVPMatrix, 0, mProjectionMatrix, 0, mViewMatrix, 0);
     }
-
-    public int getFPS() {return mFPS;}
 
     /*************************************************************************************************
      * Implement these and call super if applicable!!!
      *************************************************************************************************/
-    public void onCreate(int width, int height,
-                                  boolean contextLost)
-    {
-        //init shaders------------------------------//
-        initShaders();
-    }
+    public abstract void onCreate(int width, int height,
+                                  boolean contextLost);
 
     public abstract void onDrawFrame(boolean firstDraw);
+
+    /*************************************************************************************************
+     * Getters
+     *************************************************************************************************/
+    public int getFPS() {return mFPS;}
 }

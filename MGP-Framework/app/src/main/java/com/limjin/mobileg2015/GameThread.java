@@ -84,7 +84,7 @@ public class GameThread extends Thread {
             Canvas c = null;
             try {
 
-                //Render library (Canvas)-----------------//
+                //Render library (View)-----------------//
                 c = this.holder.lockCanvas();
                 Draw.canvas = c;
 

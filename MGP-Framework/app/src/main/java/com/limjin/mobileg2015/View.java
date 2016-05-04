@@ -1,26 +1,30 @@
 package com.limjin.mobileg2015;
 
 /**
- * Created by tanyiecher on 2/5/2016.
+ * Created by tanyiecher on 3/5/2016.
  */
+
 import android.opengl.GLES20;
-import android.opengl.GLSurfaceView.Renderer;
+import android.opengl.Matrix;
+
+import java.nio.FloatBuffer;
 
 import javax.microedition.khronos.egl.EGLConfig;
 import javax.microedition.khronos.opengles.GL10;
-import android.opengl.Matrix;
 
 /*************************************************************************************************
- * Gameloop abstract class, inherit to create your own
- *
- * Note:
- * Need recreate shaders everytime reset?
+ * View, utility OpenGL library for easier and cleaner rendering code
+ * STRICTLY RENDERING ONLY
+ * Instructions:
+ *  1) call onSurfaceCreated(..)
+ *  2) call various utility functions to render stuff
+ *  3) Remember to call onSurfaceChanged(..) in corrosponding func in Controller
  *************************************************************************************************/
-public abstract class GLRenderer implements Renderer {
-
-    /*************************************************************************************************
-     * Variables
-     *************************************************************************************************/
+public class View
+{
+    //=============================================================================================================================//
+    //|||||||||||||||||||||||||||||||||||||| *** VARIABLES *** ||||||||||||||||||||||||||||||||||||||//
+    //=============================================================================================================================//
     //shaders------------------------------------------//
     protected final static String vertexShader =
             "uniform mat4 u_MVPMatrix;      \n"     // A constant representing the combined model/view/projection matrix.
@@ -49,99 +53,54 @@ public abstract class GLRenderer implements Renderer {
                     + "}                              \n";
 
     //Handles----------------------------------------------------------------//
-    protected int programHandle = 0;    //program
-    protected int vertexShaderHandle = 0;  //shaders
-    protected int fragmentShaderHandle = 0;
+    protected static int programHandle = 0;    //program
+    protected static int vertexShaderHandle = 0;  //shaders
+    protected static int fragmentShaderHandle = 0;
 
     //New class members
     /** This will be used to pass in the transformation matrix. */
-    protected int mMVPMatrixHandle;
+    protected static int mMVPMatrixHandle = 0;
 
     /** This will be used to pass in model position information. */
-    protected int mPositionHandle;
+    protected static int mPositionHandle = 0;
 
     /** This will be used to pass in model color information. */
-    protected int mColorHandle;
+    protected static int mColorHandle = 0;
 
     //Matrices---------------------------------------------------------------------//
     /** Store the projection matrix. This is used to project the scene onto a 2D viewport. */
-    protected float[] mProjectionMatrix = new float[16];
+    protected static float[] mProjectionMatrix = new float[16];
 
     /**
      * Store the view matrix. This can be thought of as our camera. This matrix transforms world space to eye space;
      * it positions things relative to our eye.
      */
-    protected float[] mViewMatrix = new float[16];
+    protected static float[] mViewMatrix = new float[16];
 
     /**
      * Store the model matrix. This matrix is used to move models from object space (where each model can be thought
      * of being located at the center of the universe) to world space. LIKE MODEL STACK
      */
-    protected float[] mModelMatrix = new float[16];
+    protected static float[] mModelMatrix = new float[16];
+
+    /** Allocate storage for the final combined matrix. This will be passed into the shader program. */
+    protected static float[] mMVPMatrix = new float[16];
 
     //Flags----------------------------//
-    private boolean mFirstDraw;
-    private boolean mSurfaceCreated;
+    private static boolean mSurfaceCreated = false;
 
     //Info----------------------------//
-    private int mWidth;
-    private int mHeight;
+    private static int mWidth = -1;
+    private static int mHeight = -1;
 
-    //FPS------------------------------//
-    private long mLastTime;
-    private int mFPS;
-
-    /*************************************************************************************************
-     * Constructor
-     *************************************************************************************************/
-    public GLRenderer() {
-        mFirstDraw = true;
-        mSurfaceCreated = false;
-        mWidth = -1;
-        mHeight = -1;
-        mLastTime = System.currentTimeMillis();
-        mFPS = 0;
-    }
-
-    /*************************************************************************************************
-     * Load shader
-     * param type: shader type
-     *************************************************************************************************/
-    public static int LoadShader(int type, String shaderCode){
-
-        // Load in the vertex shader.
-        int ShaderHandle = GLES20.glCreateShader(type);
-
-        if (ShaderHandle != 0)
-        {
-            // Pass in the shader source.
-            GLES20.glShaderSource(ShaderHandle, shaderCode);
-
-            // Compile the shader.
-            GLES20.glCompileShader(ShaderHandle);
-
-            // Get the compilation status.
-            final int[] compileStatus = new int[1];
-            GLES20.glGetShaderiv(ShaderHandle, GLES20.GL_COMPILE_STATUS, compileStatus, 0);
-
-            // If the compilation failed, delete the shader.
-            if (compileStatus[0] == 0)
-            {
-                GLES20.glDeleteShader(ShaderHandle);
-                ShaderHandle = 0;
-            }
-        }
-
-        if (ShaderHandle == 0)
-            throw new RuntimeException("Error creating vertex shader.");
-
-        return ShaderHandle;
-    }
+    //=============================================================================================================================//
+    //|||||||||||||||||||||||||||||||||||||| *** INIT *** ||||||||||||||||||||||||||||||||||||||//
+    //=============================================================================================================================//
 
     /*************************************************************************************************
      * Init shaders
      *************************************************************************************************/
-    private void initShaders() {
+    private static void initShaders() {
 
         vertexShaderHandle = LoadShader(GLES20.GL_VERTEX_SHADER, vertexShader);
         fragmentShaderHandle = LoadShader(GLES20.GL_FRAGMENT_SHADER, fragmentShader);
@@ -183,14 +142,47 @@ public abstract class GLRenderer implements Renderer {
     }
 
     /*************************************************************************************************
-     * Necessary abstract methods
+     * Load shader
+     * param type: shader type
      *************************************************************************************************/
-    public void onSurfaceCreated(GL10 notUsed,
-                                 EGLConfig config) {
-        mSurfaceCreated = true;
-        mWidth = -1;
-        mHeight = -1;
+    private static int LoadShader(int type, String shaderCode){
 
+        // Load in the vertex shader.
+        int ShaderHandle = GLES20.glCreateShader(type);
+
+        if (ShaderHandle != 0)
+        {
+            // Pass in the shader source.
+            GLES20.glShaderSource(ShaderHandle, shaderCode);
+
+            // Compile the shader.
+            GLES20.glCompileShader(ShaderHandle);
+
+            // Get the compilation status.
+            final int[] compileStatus = new int[1];
+            GLES20.glGetShaderiv(ShaderHandle, GLES20.GL_COMPILE_STATUS, compileStatus, 0);
+
+            // If the compilation failed, delete the shader.
+            if (compileStatus[0] == 0)
+            {
+                GLES20.glDeleteShader(ShaderHandle);
+                ShaderHandle = 0;
+            }
+        }
+
+        if (ShaderHandle == 0)
+            throw new RuntimeException("Error creating vertex shader.");
+
+        return ShaderHandle;
+    }
+
+
+    /*************************************************************************************************
+     * Surface created: call in corrosponding func in Controller
+     *************************************************************************************************/
+    public static void onSurfaceCreated(GL10 notUsed,
+                                 EGLConfig config)
+    {
         //init shaders------------------------------//
         initShaders();
 
@@ -224,10 +216,19 @@ public abstract class GLRenderer implements Renderer {
         // NOTE: In OpenGL 1, a ModelView matrix is used, which is a combination of a model and
         // view matrix. In OpenGL 2, we can keep track of these matrices separately if we choose.
         Matrix.setLookAtM(mViewMatrix, 0, eyeX, eyeY, eyeZ, lookX, lookY, lookZ, upX, upY, upZ);
+
+        //clear the screen-------------------------------------------------//
+        GLES20.glClearColor(255.f, 0f, 0f, 1f);
     }
 
-    @Override
-    public void onSurfaceChanged(GL10 notUsed, int width, int height)
+    //=============================================================================================================================//
+    //|||||||||||||||||||||||||||||||||||||| *** RUNTIME *** ||||||||||||||||||||||||||||||||||||||//
+    //=============================================================================================================================//
+
+    /*************************************************************************************************
+     * Surface changed: call in corrosponding func in Controller
+     *************************************************************************************************/
+    public static void onSurfaceChanged(GL10 notUsed, int width, int height)
     {
         if (!mSurfaceCreated && width == mWidth && height == mHeight)
             return;
@@ -236,8 +237,6 @@ public abstract class GLRenderer implements Renderer {
         mHeight = height;
 
         //Need recreate shaders everytime reset?-----------------------//
-        //Note: SurfaceChanged() called when surface created, so call this here will do
-        onCreate(mWidth, mHeight, mSurfaceCreated);
         mSurfaceCreated = false;
 
         //projection------------------------------------------------------------------//
@@ -257,34 +256,54 @@ public abstract class GLRenderer implements Renderer {
         Matrix.frustumM(mProjectionMatrix, 0, left, right, bottom, top, near, far);
     }
 
-    @Override
-    public void onDrawFrame(GL10 notUsed) {
-        onDrawFrame(mFirstDraw);
+    //=============================================================================================================================//
+    //|||||||||||||||||||||||||||||||||||||| *** RENDER FUNCTIONS *** ||||||||||||||||||||||||||||||||||||||//
+    //=============================================================================================================================//
 
-        //cal FPS-----------------------------//
-        mFPS++;
-        long currentTime = System.currentTimeMillis();
-        if (currentTime - mLastTime >= 1000) {
-            mFPS = 0;
-            mLastTime = currentTime;
-        }
+    /*************************************************************************************************
+     * Draw a mesh
+     *************************************************************************************************/
+    public static void drawMesh(Mesh mesh)
+    {
+        // Pass in the position information
+        mesh.vertices.position(mesh.mPositionOffset);
+        GLES20.glVertexAttribPointer(mPositionHandle, mesh.mPositionDataSize, GLES20.GL_FLOAT, false,
+                mesh.mStrideBytes, mesh.vertices);
 
-        //Flags---------------------------------------------//
-        if (mFirstDraw) {
-            mFirstDraw = false;
-        }
+        GLES20.glEnableVertexAttribArray(mPositionHandle);
+
+        // Pass in the color information
+        mesh.vertices.position(mesh.mColorOffset);
+        GLES20.glVertexAttribPointer(mColorHandle, mesh.mColorDataSize, GLES20.GL_FLOAT, false,
+                mesh.mStrideBytes, mesh.vertices);
+
+        GLES20.glEnableVertexAttribArray(mColorHandle);
+
+        // This multiplies the view matrix by the model matrix, and stores the result in the MVP matrix
+        // (which currently contains model * view).
+        Matrix.multiplyMM(mMVPMatrix, 0, mViewMatrix, 0, mModelMatrix, 0);
+
+        // This multiplies the modelview matrix by the projection matrix, and stores the result in the MVP matrix
+        // (which now contains model * view * projection).
+        Matrix.multiplyMM(mMVPMatrix, 0, mProjectionMatrix, 0, mMVPMatrix, 0);
+
+        GLES20.glUniformMatrix4fv(mMVPMatrixHandle, 1, false, mMVPMatrix, 0);
+        GLES20.glDrawArrays(GLES20.GL_TRIANGLES, 0, 3);
     }
 
     /*************************************************************************************************
-     * Implement these and call super if applicable!!!
+     * Set to mModelMatrix(TRANSFORMATION MAT) Identity
      *************************************************************************************************/
-    public abstract void onCreate(int width, int height,
-                                  boolean contextLost);
-
-    public abstract void onDrawFrame(boolean firstDraw);
+    public static void SetTransMat_toIdentity(){Matrix.setIdentityM(mModelMatrix, 0);}
 
     /*************************************************************************************************
-     * Getters
+     * Transform mModelMatrix(TRANSFORMATION MAT)
      *************************************************************************************************/
-    public int getFPS() {return mFPS;}
+    public static void SetTransMat_toTranslate(float X, float Y, float Z){
+        Matrix.translateM(mModelMatrix, 0, X, Y, Z);
+    }
+
+    public static void SetTransMat_toRotate(float angle, float X, float Y, float Z){
+        Matrix.rotateM(mModelMatrix, 0, angle, X, Y, Z);
+    }
 }

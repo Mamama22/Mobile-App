@@ -16,6 +16,8 @@ import javax.microedition.khronos.opengles.GL10;
  *************************************************************************************************/
 public class Controller implements Renderer
 {
+    float angle;
+
     /*************************************************************************************************
      * Variables
      *************************************************************************************************/
@@ -45,6 +47,8 @@ public class Controller implements Renderer
 
         //Mesh-------------------------------------//
         triangle.Init(triangle1VerticesData);
+
+        angle = 0.f;
     }
 
     @Override
@@ -60,8 +64,14 @@ public class Controller implements Renderer
         //Render mesh----------------------------------------------//
         View.SetTransMat_toIdentity();
         View.SetTransMat_toTranslate(-1.f, 0.f, 0.f);
-        View.SetTransMat_toRotate(40.f, 0.f, 0.f, 1.f);
+        View.SetTransMat_toRotate(angle, 0.f, 0.f, 1.f);
         View.drawMesh(triangle);
+        angle += 1.f;
+
+        if(angle >= 360.f)
+            angle = 0.f;
+        else if(angle < 0.f)
+            angle = 360.f;
 
         View.SetTransMat_toIdentity();
         View.SetTransMat_toTranslate(1.f, 0.f, 0.f);

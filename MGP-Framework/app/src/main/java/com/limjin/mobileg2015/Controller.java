@@ -4,8 +4,6 @@ package com.limjin.mobileg2015;
  * Created by tanyiecher on 3/5/2016.
  */
 
-import android.graphics.*;
-import android.opengl.GLES20;
 import android.opengl.GLSurfaceView.Renderer;
 
 import javax.microedition.khronos.egl.EGLConfig;
@@ -21,20 +19,173 @@ public class Controller implements Renderer
     /*************************************************************************************************
      * Variables
      *************************************************************************************************/
-    // This triangle is red, green, and blue.
-    final float[] triangle1VerticesData = {
-            // X, Y, Z,
-            // R, G, B, A
-            -0.5f, -0.25f, 0.0f,
-            1.0f, 0.0f, 0.0f, 1.0f,
+    // Define points for a cube.
 
-            0.5f, -0.25f, 0.0f,
-            0.0f, 0.0f, 1.0f, 1.0f,
+    // X, Y, Z
+    final float[] cubePositionData =
+            {
+                    // In OpenGL counter-clockwise winding is default. This means that when we look at a triangle,
+                    // if the points are counter-clockwise we are looking at the "front". If not we are looking at
+                    // the back. OpenGL has an optimization where all back-facing triangles are culled, since they
+                    // usually represent the backside of an object and aren't visible anyways.
 
-            0.0f, 0.559016994f, 0.0f,
-            0.0f, 1.0f, 0.0f, 1.0f};
+                    // Front face
+                    -1.0f, 1.0f, 1.0f,
+                    -1.0f, -1.0f, 1.0f,
+                    1.0f, 1.0f, 1.0f,
+                    -1.0f, -1.0f, 1.0f,
+                    1.0f, -1.0f, 1.0f,
+                    1.0f, 1.0f, 1.0f,
 
-    Mesh triangle = new Mesh();
+                   // Right face
+                    1.0f, 1.0f, 1.0f,
+                    1.0f, -1.0f, 1.0f,
+                    1.0f, 1.0f, -1.0f,
+                    1.0f, -1.0f, 1.0f,
+                    1.0f, -1.0f, -1.0f,
+                    1.0f, 1.0f, -1.0f,
+
+                    // Back face
+                    1.0f, 1.0f, -1.0f,
+                    1.0f, -1.0f, -1.0f,
+                    -1.0f, 1.0f, -1.0f,
+                    1.0f, -1.0f, -1.0f,
+                    -1.0f, -1.0f, -1.0f,
+                    -1.0f, 1.0f, -1.0f,
+
+                    // Left face
+                    -1.0f, 1.0f, -1.0f,
+                    -1.0f, -1.0f, -1.0f,
+                    -1.0f, 1.0f, 1.0f,
+                    -1.0f, -1.0f, -1.0f,
+                    -1.0f, -1.0f, 1.0f,
+                    -1.0f, 1.0f, 1.0f,
+
+                    // Top face
+                    -1.0f, 1.0f, -1.0f,
+                    -1.0f, 1.0f, 1.0f,
+                    1.0f, 1.0f, 1.0f,
+                    1.0f, 1.0f, -1.0f,
+                    -1.0f, 1.0f, -1.0f,
+                    1.0f, 1.0f, 1.0f,
+
+                    // Bottom face
+                    1.0f, -1.0f, -1.0f,
+                    1.0f, -1.0f, 1.0f,
+                    -1.0f, -1.0f, -1.0f,
+                    1.0f, -1.0f, 1.0f,
+                    -1.0f, -1.0f, 1.0f,
+                    -1.0f, -1.0f, -1.0f,
+            };
+
+    // R, G, B, A
+    final float[] cubeColorData =
+            {
+                    // Front face (red)
+                    1.0f, 0.0f, 0.0f, 1.0f,
+                    1.0f, 0.0f, 0.0f, 1.0f,
+                    1.0f, 0.0f, 0.0f, 1.0f,
+                    1.0f, 0.0f, 0.0f, 1.0f,
+                    1.0f, 0.0f, 0.0f, 1.0f,
+                    1.0f, 0.0f, 0.0f, 1.0f,
+
+                    // Right face (green)
+                    0.0f, 1.0f, 0.0f, 1.0f,
+                    0.0f, 1.0f, 0.0f, 1.0f,
+                    0.0f, 1.0f, 0.0f, 1.0f,
+                    0.0f, 1.0f, 0.0f, 1.0f,
+                    0.0f, 1.0f, 0.0f, 1.0f,
+                    0.0f, 1.0f, 0.0f, 1.0f,
+
+                    // Back face (blue)
+                    0.0f, 0.0f, 1.0f, 1.0f,
+                    0.0f, 0.0f, 1.0f, 1.0f,
+                    0.0f, 0.0f, 1.0f, 1.0f,
+                    0.0f, 0.0f, 1.0f, 1.0f,
+                    0.0f, 0.0f, 1.0f, 1.0f,
+                    0.0f, 0.0f, 1.0f, 1.0f,
+
+                    // Left face (yellow)
+                    1.0f, 1.0f, 0.0f, 1.0f,
+                    1.0f, 1.0f, 0.0f, 1.0f,
+                    1.0f, 1.0f, 0.0f, 1.0f,
+                    1.0f, 1.0f, 0.0f, 1.0f,
+                    1.0f, 1.0f, 0.0f, 1.0f,
+                    1.0f, 1.0f, 0.0f, 1.0f,
+
+                    // Top face (cyan)
+                    0.0f, 1.0f, 1.0f, 1.0f,
+                    0.0f, 1.0f, 1.0f, 1.0f,
+                    0.0f, 1.0f, 1.0f, 1.0f,
+                    0.0f, 1.0f, 1.0f, 1.0f,
+                    0.0f, 1.0f, 1.0f, 1.0f,
+                    0.0f, 1.0f, 1.0f, 1.0f,
+
+                    // Bottom face (magenta)
+                    1.0f, 0.0f, 1.0f, 1.0f,
+                    1.0f, 0.0f, 1.0f, 1.0f,
+                    1.0f, 0.0f, 1.0f, 1.0f,
+                    1.0f, 0.0f, 1.0f, 1.0f,
+                    1.0f, 0.0f, 1.0f, 1.0f,
+                    1.0f, 0.0f, 1.0f, 1.0f
+            };
+
+    // X, Y, Z
+    // The normal is used in light calculations and is a vector which points
+    // orthogonal to the plane of the surface. For a cube model, the normals
+    // should be orthogonal to the points of each face.
+    final float[] cubeNormalData =
+            {
+                    // Front face
+                    0.0f, 0.0f, 1.0f,
+                    0.0f, 0.0f, 1.0f,
+                    0.0f, 0.0f, 1.0f,
+                    0.0f, 0.0f, 1.0f,
+                    0.0f, 0.0f, 1.0f,
+                    0.0f, 0.0f, 1.0f,
+
+                   // Right face
+                    1.0f, 0.0f, 0.0f,
+                    1.0f, 0.0f, 0.0f,
+                    1.0f, 0.0f, 0.0f,
+                    1.0f, 0.0f, 0.0f,
+                    1.0f, 0.0f, 0.0f,
+                    1.0f, 0.0f, 0.0f,
+
+                  // Back face
+                    0.0f, 0.0f, -1.0f,
+                    0.0f, 0.0f, -1.0f,
+                    0.0f, 0.0f, -1.0f,
+                    0.0f, 0.0f, -1.0f,
+                    0.0f, 0.0f, -1.0f,
+                    0.0f, 0.0f, -1.0f,
+
+                    // Left face
+                    -1.0f, 0.0f, 0.0f,
+                    -1.0f, 0.0f, 0.0f,
+                    -1.0f, 0.0f, 0.0f,
+                    -1.0f, 0.0f, 0.0f,
+                    -1.0f, 0.0f, 0.0f,
+                    -1.0f, 0.0f, 0.0f,
+
+                    // Top face
+                    0.0f, 1.0f, 0.0f,
+                    0.0f, 1.0f, 0.0f,
+                    0.0f, 1.0f, 0.0f,
+                    0.0f, 1.0f, 0.0f,
+                    0.0f, 1.0f, 0.0f,
+                    0.0f, 1.0f, 0.0f,
+
+                    // Bottom face
+                    0.0f, -1.0f, 0.0f,
+                    0.0f, -1.0f, 0.0f,
+                    0.0f, -1.0f, 0.0f,
+                    0.0f, -1.0f, 0.0f,
+                    0.0f, -1.0f, 0.0f,
+                    0.0f, -1.0f, 0.0f,
+            };
+
+    MeshAdvanced cube = new MeshAdvanced();
 
     /*************************************************************************************************
      * Necessary abstract methods
@@ -43,10 +194,10 @@ public class Controller implements Renderer
     public void onSurfaceCreated(GL10 gl, EGLConfig config) {
 
         //View---------------------------------------//
-        View.onSurfaceCreated(gl, config);
+        View.onSurfaceCreated();
 
         //Mesh-------------------------------------//
-        triangle.Init(triangle1VerticesData);
+        cube.Init(cubePositionData, cubeColorData, cubeNormalData);
 
         angle = 0.f;
     }
@@ -61,11 +212,16 @@ public class Controller implements Renderer
     @Override
     public void onDrawFrame(GL10 gl) {
 
+
+        //pre render-------------------------------------------------//
+        View.PreRender();
+
         //Render mesh----------------------------------------------//
         View.SetTransMat_toIdentity();
-        View.SetTransMat_toTranslate(-1.f, 0.f, 0.f);
+        View.SetTransMat_toTranslate(-3.8f, 0.f, 0.f);
         View.SetTransMat_toRotate(angle, 0.f, 0.f, 1.f);
-        View.drawMesh(triangle);
+        View.SetTransMat_toScale(0.4f, 0.4f, 0.4f);
+        View.drawCube(cube);
         angle += 1.f;
 
         if(angle >= 360.f)
@@ -74,8 +230,12 @@ public class Controller implements Renderer
             angle = 360.f;
 
         View.SetTransMat_toIdentity();
-        View.SetTransMat_toTranslate(1.f, 0.f, 0.f);
-        View.SetTransMat_toRotate(-140.f, 0.f, 0.f, 1.f);
-        View.drawMesh(triangle);
+        View.SetTransMat_toTranslate(1.6f, 0.f, -0.5f);
+        View.SetTransMat_toRotate(angle, 0.f, 0.5f, 0.5f);
+        //View.SetTransMat_toScale(0.8f, 0.8f, 0.8f);
+        View.drawCube(cube);
+
+        //pre render-------------------------------------------------//
+        View.PostRender();
     }
 }

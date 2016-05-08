@@ -4,7 +4,7 @@ package com.limjin.mobileg2015;
  * Created by tanyiecher on 5/5/2016.
  */
 
-import android.opengl.GLES20;
+import android.opengl.GLES30;
 import android.opengl.Matrix;
 
 import java.nio.ByteBuffer;
@@ -40,7 +40,6 @@ public class Mesh
     /*************************************************************************************************
      * Init:
      * param verticesData: the vertice data in this format: // X, Y, Z,
-                                                            // R, G, B, A
      *************************************************************************************************/
     public void Init(float[] verticesData)
     {

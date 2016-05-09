@@ -220,7 +220,7 @@ public class Controller implements Renderer
         View.SetTransMat_toIdentity();
         View.SetTransMat_toTranslate(-3.8f, 0.f, 0.f);
         View.SetTransMat_toRotate(angle, 0.f, 0.f, 1.f);
-        View.SetTransMat_toScale(0.4f, 0.4f, 0.4f);
+        View.SetTransMat_toScale(0.6f, 0.6f, 0.6f);
         View.drawCube(cube);
         angle += 1.f;
 

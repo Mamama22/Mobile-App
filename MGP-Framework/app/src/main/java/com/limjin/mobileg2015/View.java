@@ -6,10 +6,6 @@ package com.limjin.mobileg2015;
 
 import android.opengl.GLES30;
 import android.opengl.Matrix;
-
-import java.nio.FloatBuffer;
-
-import javax.microedition.khronos.egl.EGLConfig;
 import javax.microedition.khronos.opengles.GL10;
 
 /*************************************************************************************************
@@ -25,71 +21,6 @@ public class View
     //=============================================================================================================================//
     //|||||||||||||||||||||||||||||||||||||| *** VARIABLES *** ||||||||||||||||||||||||||||||||||||||//
     //=============================================================================================================================//
-    //shaders------------------------------------------//
-    protected static final String vertexShader =
-            "uniform mat4 u_MVPMatrix;      \n"     // A constant representing the combined model/view/projection matrix.
-                    + "uniform mat4 u_MVMatrix;       \n"     // A constant representing the combined model/view matrix.
-                    + "uniform vec3 u_LightPos;       \n"     // The position of the light in eye space.
-                    + "uniform float u_Power;       \n"
-
-                    + "attribute vec4 a_Position;     \n"     // Per-vertex position information we will pass in.
-                    + "attribute vec4 a_Color;        \n"     // Per-vertex color information we will pass in.
-                    + "attribute vec3 a_Normal;       \n"     // Per-vertex normal information we will pass in
-
-                    + "varying vec4 v_Color;          \n"     // This will be passed into the fragment shader.
-
-                    + "void main()                    \n"     // The entry point for our vertex shader.
-                    + "{                              \n"
-// Transform the vertex into eye space.
-                    + "   vec3 modelViewVertex = vec3(u_MVMatrix * a_Position);              \n"
-// Transform the normal's orientation into eye space.
-                    + "   vec3 modelViewNormal = vec3(u_MVMatrix * vec4(a_Normal, 0.0));     \n"
-// Will be used for attenuation.
-                    + "   float distance = length(u_LightPos - modelViewVertex);             \n"
-// Get a lighting direction vector from the light to the vertex.
-                    + "   vec3 lightVector = normalize(u_LightPos - modelViewVertex);        \n"
-// Calculate the dot product of the light vector and vertex normal. If the normal and light vector are
-// pointing in the same direction then it will get max illumination.
-                    + "   float diffuse = max(dot(modelViewNormal, lightVector), 0.1);       \n"
-// Attenuate the light based on distance.
-                    + "   diffuse = diffuse * (1.0 / (1.0 + (0.25 * distance * distance)));  \n"
-// Multiply the color by the illumination level. It will be interpolated across the triangle.
-                    + "   v_Color = a_Color * diffuse * u_Power;                                       \n"
-// gl_Position is a special variable used to store the final position.
-// Multiply the vertex by the matrix to get the final point in normalized screen coordinates.
-                    + "   gl_Position = u_MVPMatrix * a_Position;                            \n"
-                    + "}";
-
-    protected static final String fragmentShader =
-            "precision mediump float;       \n"     // Set the default precision to medium. We don't need as high of a
-                    // precision in the fragment shader.
-                    + "varying vec4 v_Color;          \n"     // This is the color from the vertex shader interpolated across the
-                    // triangle per fragment.
-                    + "void main()                    \n"     // The entry point for our fragment shader.
-                    + "{                              \n"
-                    + "   gl_FragColor = v_Color;     \n"     // Pass the color directly through the pipeline.
-                    + "}                              \n";
-
-
-    // Define a simple shader program for our point.
-    final static String pointVertexShader =
-            "uniform mat4 u_MVPMatrix;      \n"
-                    + "attribute vec4 a_Position;     \n"
-                    + "void main()                    \n"
-                    + "{                              \n"
-                    + "   gl_Position = u_MVPMatrix   \n"
-                    + "               * a_Position;   \n"
-                    + "   gl_PointSize = 5.0;         \n"
-                    + "}                              \n";
-
-    final static String pointFragmentShader =
-            "precision mediump float;       \n"
-                    + "void main()                    \n"
-                    + "{                              \n"
-                    + "   gl_FragColor = vec4(1.0,    \n"
-                    + "   1.0, 1.0, 1.0);             \n"
-                    + "}                              \n";
-
     //Program handles----------------------------//
     /** This is a handle to our per-vertex cube shading program. */
     private static int mPerVertexProgramHandle = 0;
@@ -166,6 +97,9 @@ public class View
     private static int mWidth = -1;
     private static int mHeight = -1;
 
+    //Misc----------------------------//
+    protected static float[] LightPos = new float[3];
+
     //=============================================================================================================================//
     //|||||||||||||||||||||||||||||||||||||| *** INIT *** ||||||||||||||||||||||||||||||||||||||//
     //=============================================================================================================================//
@@ -176,18 +110,18 @@ public class View
     private static void initShaders() {
 
         //normal shader-------------------------------//
-        vertexShaderHandle = LoadShader(GLES30.GL_VERTEX_SHADER, vertexShader);
-        fragmentShaderHandle = LoadShader(GLES30.GL_FRAGMENT_SHADER, fragmentShader);
+        vertexShaderHandle = LoadShader(GLES30.GL_VERTEX_SHADER, Shaders.vertexShader);
+        fragmentShaderHandle = LoadShader(GLES30.GL_FRAGMENT_SHADER, Shaders.fragmentShader);
 
-        //link
+        //link and pass in attributes
         mPerVertexProgramHandle = createAndLinkProgram(vertexShaderHandle, fragmentShaderHandle,
                 new String[]{"a_Position", "a_Color", "a_Normal"});
 
         //light shader-------------------------//
-        point_vertexShaderHandle = LoadShader(GLES30.GL_VERTEX_SHADER, pointVertexShader);
-        point_fragmentShaderHandle = LoadShader(GLES30.GL_FRAGMENT_SHADER, pointFragmentShader);
+        point_vertexShaderHandle = LoadShader(GLES30.GL_VERTEX_SHADER, Shaders.pointVertexShader);
+        point_fragmentShaderHandle = LoadShader(GLES30.GL_FRAGMENT_SHADER, Shaders.pointFragmentShader);
 
-        //link
+        //link and pass in attributes
         mPointProgramHandle = createAndLinkProgram(point_vertexShaderHandle, point_fragmentShaderHandle,
                 new String[] {"a_Position"});
     }
@@ -246,7 +180,7 @@ public class View
             // Bind the fragment shader to the program.
             GLES30.glAttachShader(programHandle, fragmentShaderHandle);
 
-            // Bind attributes
+            // Bind attributes (ATTRIBUTES MUST BE BINDED TO SHADER)
             if (attributes != null)
             {
                 final int size = attributes.length;
@@ -318,6 +252,9 @@ public class View
         // NOTE: In OpenGL 1, a ModelView matrix is used, which is a combination of a model and
         // view matrix. In OpenGL 2, we can keep track of these matrices separately if we choose.
         Matrix.setLookAtM(mViewMatrix, 0, eyeX, eyeY, eyeZ, lookX, lookY, lookZ, upX, upY, upZ);
+
+        //light pos----------------------------------//
+        LightPos[0] = 0.f;LightPos[1] = 0.f;LightPos[2] = 1.f;
     }
 
     //=============================================================================================================================//
@@ -385,11 +322,16 @@ public class View
     {
         GLES30.glClear(GLES30.GL_COLOR_BUFFER_BIT | GLES30.GL_DEPTH_BUFFER_BIT);
 
+        //Light pos----------------------------------------------------//
+        LightPos[0] += 0.05f;
+        if(LightPos[0] >= 2.f)
+            LightPos[0] = -2.f;
+
         SetShaderAndUniforms();
 
         // Calculate position of the light. Rotate and then push into the distance.
         Matrix.setIdentityM(mLightModelMatrix, 0);
-        Matrix.translateM(mLightModelMatrix, 0, -1.0f, 0.0f, 1.0f);
+        Matrix.translateM(mLightModelMatrix, 0, LightPos[0], LightPos[1], LightPos[2]);
         //Matrix.rotateM(mLightModelMatrix, 0, 20.f, 0.0f, 1.0f, 0.0f);
        // Matrix.translateM(mLightModelMatrix, 0, 0.0f, 0.0f, 2.0f);
 

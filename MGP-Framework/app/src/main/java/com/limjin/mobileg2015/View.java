@@ -4,11 +4,13 @@ package com.limjin.mobileg2015;
  * Created by tanyiecher on 3/5/2016.
  */
 
+import android.content.Context;
 import android.opengl.GLES30;
 import android.opengl.Matrix;
 
 import com.limjin.mobileg2015.Shaders.BasicShader;
 import com.limjin.mobileg2015.Shaders.TextureShader;
+import com.limjin.mobileg2015.Utilities.MiscUtilities;
 
 import javax.microedition.khronos.opengles.GL10;
 
@@ -113,6 +115,8 @@ public class View
     //Misc----------------------------//
     protected static float[] LightPos = new float[3];
 
+    protected static Context context;
+
     //=============================================================================================================================//
     //|||||||||||||||||||||||||||||||||||||| *** INIT *** ||||||||||||||||||||||||||||||||||||||//
     //=============================================================================================================================//
@@ -123,6 +127,8 @@ public class View
     private static void initShaders() {
 
         //normal shader-------------------------------//
+        //String vert_texture1 = MiscUtilities.readTextFileFromRawResource(context, );
+
         vertexShaderHandle = LoadShader(GLES30.GL_VERTEX_SHADER, TextureShader.vertexShader);
         fragmentShaderHandle = LoadShader(GLES30.GL_FRAGMENT_SHADER, TextureShader.fragmentShader);
 

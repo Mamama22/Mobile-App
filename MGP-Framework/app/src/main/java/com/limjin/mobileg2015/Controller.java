@@ -4,6 +4,7 @@ package com.limjin.mobileg2015;
  * Created by tanyiecher on 3/5/2016.
  */
 
+import android.content.Context;
 import android.opengl.GLSurfaceView.Renderer;
 
 import javax.microedition.khronos.egl.EGLConfig;
@@ -185,7 +186,71 @@ public class Controller implements Renderer
                     0.0f, -1.0f, 0.0f,
             };
 
+    // S, T (or X, Y)
+    // Texture coordinate data.
+    // Because images have a Y axis pointing downward (values increase as you move down the image) while
+    // OpenGL has a Y axis pointing upward, we adjust for that here by flipping the Y axis.
+    // What's more is that the texture coordinates are the same for every face.
+    final float[] TextureCoordinateData =
+            {
+                    // Front face
+                    0.0f, 0.0f,
+                    0.0f, 1.0f,
+                    1.0f, 0.0f,
+                    0.0f, 1.0f,
+                    1.0f, 1.0f,
+                    1.0f, 0.0f,
+
+                    // Front face
+                    0.0f, 0.0f,
+                    0.0f, 1.0f,
+                    1.0f, 0.0f,
+                    0.0f, 1.0f,
+                    1.0f, 1.0f,
+                    1.0f, 0.0f,
+
+                    // Front face
+                    0.0f, 0.0f,
+                    0.0f, 1.0f,
+                    1.0f, 0.0f,
+                    0.0f, 1.0f,
+                    1.0f, 1.0f,
+                    1.0f, 0.0f,
+
+                    // Front face
+                    0.0f, 0.0f,
+                    0.0f, 1.0f,
+                    1.0f, 0.0f,
+                    0.0f, 1.0f,
+                    1.0f, 1.0f,
+                    1.0f, 0.0f,
+
+                    // Front face
+                    0.0f, 0.0f,
+                    0.0f, 1.0f,
+                    1.0f, 0.0f,
+                    0.0f, 1.0f,
+                    1.0f, 1.0f,
+                    1.0f, 0.0f,
+
+                    // Front face
+                    0.0f, 0.0f,
+                    0.0f, 1.0f,
+                    1.0f, 0.0f,
+                    0.0f, 1.0f,
+                    1.0f, 1.0f,
+                    1.0f, 0.0f,
+            };
+
+    //the context "hosting" this Controller---------------------//
+    Context context;
+
     MeshAdvanced cube = new MeshAdvanced();
+
+    Controller(Context context)
+    {
+        this.context = context;
+    }
 
     /*************************************************************************************************
      * Necessary abstract methods
@@ -197,7 +262,8 @@ public class Controller implements Renderer
         View.onSurfaceCreated();
 
         //Mesh-------------------------------------//
-        cube.Init(cubePositionData, cubeColorData, cubeNormalData);
+        cube.Init(cubePositionData, cubeColorData, cubeNormalData, TextureCoordinateData);
+        cube.LoadTexture(context, R.drawable.rubbish);
 
         angle = 0.f;
     }
@@ -219,8 +285,8 @@ public class Controller implements Renderer
         //Render mesh----------------------------------------------//
         View.SetTransMat_toIdentity();
         View.SetTransMat_toTranslate(-3.8f, 0.f, 0.f);
-        View.SetTransMat_toRotate(angle, 0.f, 0.f, 1.f);
-        View.SetTransMat_toScale(0.6f, 0.6f, 0.6f);
+        View.SetTransMat_toRotate(angle, 0.f, 1.f, 0.f);
+        //View.SetTransMat_toScale(0.6f, 0.6f, 0.6f);
         View.drawCube(cube);
         angle += 1.f;
 

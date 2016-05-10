@@ -43,9 +43,10 @@ public class GamePage extends Activity{
             mGLView = new GLSurfaceView(this);
             mGLView.setEGLContextClientVersion(3);
             mGLView.setPreserveEGLContextOnPause(true);
-            mGLView.setRenderer(new Controller());   //surfaceView to render
+            mGLView.setRenderer(new Controller(this));   //surfaceView to render
         } else {
             // Time to get a new phone, OpenGL ES 2.0 not supported.
+            //FUCK URSELF
         }
     }
 

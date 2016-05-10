@@ -6,6 +6,9 @@ package com.limjin.mobileg2015;
 
 import android.opengl.GLES30;
 import android.opengl.Matrix;
+
+import com.limjin.mobileg2015.Shaders.BasicShader;
+
 import javax.microedition.khronos.opengles.GL10;
 
 /*************************************************************************************************
@@ -110,16 +113,16 @@ public class View
     private static void initShaders() {
 
         //normal shader-------------------------------//
-        vertexShaderHandle = LoadShader(GLES30.GL_VERTEX_SHADER, Shaders.vertexShader);
-        fragmentShaderHandle = LoadShader(GLES30.GL_FRAGMENT_SHADER, Shaders.fragmentShader);
+        vertexShaderHandle = LoadShader(GLES30.GL_VERTEX_SHADER, BasicShader.vertexShader);
+        fragmentShaderHandle = LoadShader(GLES30.GL_FRAGMENT_SHADER, BasicShader.fragmentShader);
 
         //link and pass in attributes
         mPerVertexProgramHandle = createAndLinkProgram(vertexShaderHandle, fragmentShaderHandle,
                 new String[]{"a_Position", "a_Color", "a_Normal"});
 
         //light shader-------------------------//
-        point_vertexShaderHandle = LoadShader(GLES30.GL_VERTEX_SHADER, Shaders.pointVertexShader);
-        point_fragmentShaderHandle = LoadShader(GLES30.GL_FRAGMENT_SHADER, Shaders.pointFragmentShader);
+        point_vertexShaderHandle = LoadShader(GLES30.GL_VERTEX_SHADER, BasicShader.pointVertexShader);
+        point_fragmentShaderHandle = LoadShader(GLES30.GL_FRAGMENT_SHADER, BasicShader.pointFragmentShader);
 
         //link and pass in attributes
         mPointProgramHandle = createAndLinkProgram(point_vertexShaderHandle, point_fragmentShaderHandle,

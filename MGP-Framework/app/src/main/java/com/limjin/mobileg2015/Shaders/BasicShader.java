@@ -1,4 +1,4 @@
-package com.limjin.mobileg2015;
+package com.limjin.mobileg2015.Shaders;
 
 /**
  * Created by tanyiecher on 9/5/2016.
@@ -6,7 +6,7 @@ package com.limjin.mobileg2015;
 /*************************************************************************************************
  * Contains shader code
  *************************************************************************************************/
-public class Shaders
+public class BasicShader
 {
     //shaders------------------------------------------//
     public static final String vertexShader =

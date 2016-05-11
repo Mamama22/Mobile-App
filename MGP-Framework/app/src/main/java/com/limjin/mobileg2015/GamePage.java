@@ -39,9 +39,9 @@ public class GamePage extends Activity{
      * Init OpenGL 3.0
      *************************************************************************************************/
     private void initialize() {
-        if (hasGLES30()) {
+        if (hasGLES20()) {
             mGLView = new GLSurfaceView(this);
-            mGLView.setEGLContextClientVersion(3);
+            mGLView.setEGLContextClientVersion(2);
             mGLView.setPreserveEGLContextOnPause(true);
             mGLView.setRenderer(new Controller(this));   //surfaceView to render
         } else {
@@ -77,10 +77,10 @@ public class GamePage extends Activity{
     /*************************************************************************************************
      * check if device supports OpenGL 3.0
      *************************************************************************************************/
-    private boolean hasGLES30() {
+    private boolean hasGLES20() {
         ActivityManager am = (ActivityManager)
                 getSystemService(Context.ACTIVITY_SERVICE);
         ConfigurationInfo info = am.getDeviceConfigurationInfo();
-        return info.reqGlEsVersion >= 0x30000;
+        return info.reqGlEsVersion >= 0x20000;
     }
 }

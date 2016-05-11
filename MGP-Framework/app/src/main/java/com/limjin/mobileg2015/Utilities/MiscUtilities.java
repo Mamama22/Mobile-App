@@ -7,7 +7,7 @@ package com.limjin.mobileg2015.Utilities;
 import android.content.Context;
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
-import android.opengl.GLES30;
+import android.opengl.GLES20;
 import android.opengl.GLUtils;
 
 import java.io.BufferedReader;
@@ -27,7 +27,7 @@ public class MiscUtilities
     {
         //Create and generate texture handle--------------------------------//
         final int[] textureHandle = new int[1];
-        GLES30.glGenTextures(1, textureHandle, 0);  //can create multiple, but we need just 1
+        GLES20.glGenTextures(1, textureHandle, 0);  //can create multiple, but we need just 1
 
         if (textureHandle[0] != 0)
         {
@@ -40,7 +40,7 @@ public class MiscUtilities
             final Bitmap bitmap = BitmapFactory.decodeResource(context.getResources(), resourceId, options);
 
             // Bind to the texture in OpenGL (It is now the 'main' texture represented by GL_TEXTURE_2D)
-            GLES30.glBindTexture(GLES30.GL_TEXTURE_2D, textureHandle[0]);
+            GLES20.glBindTexture(GLES20.GL_TEXTURE_2D, textureHandle[0]);
 
             // Set filtering
             //GL_TEXTURE_***_FILTER: tells openGL what kind of filtering to apply when...
@@ -48,11 +48,11 @@ public class MiscUtilities
             //GL_TEXTURE_MIN_FILTER: drawing texture SMALLER than original size in pixels
             //GL_TEXTURE_MIN_FILTER: drawing texture LARGER than original size in pixels
             //====
-            GLES30.glTexParameteri(GLES30.GL_TEXTURE_2D, GLES30.GL_TEXTURE_MIN_FILTER, GLES30.GL_NEAREST);
-            GLES30.glTexParameteri(GLES30.GL_TEXTURE_2D, GLES30.GL_TEXTURE_MAG_FILTER, GLES30.GL_NEAREST);
+            GLES20.glTexParameteri(GLES20.GL_TEXTURE_2D, GLES20.GL_TEXTURE_MIN_FILTER, GLES20.GL_NEAREST);
+            GLES20.glTexParameteri(GLES20.GL_TEXTURE_2D, GLES20.GL_TEXTURE_MAG_FILTER, GLES20.GL_NEAREST);
 
             // Load the bitmap into the bound texture.
-            GLUtils.texImage2D(GLES30.GL_TEXTURE_2D, 0, bitmap, 0);
+            GLUtils.texImage2D(GLES20.GL_TEXTURE_2D, 0, bitmap, 0);
 
             // Recycle the bitmap, since its data has been loaded into OpenGL.
             bitmap.recycle();

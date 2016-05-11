@@ -7,9 +7,6 @@ package com.limjin.mobileg2015;
 import android.content.Context;
 import android.opengl.GLES20;
 import android.opengl.Matrix;
-
-import com.limjin.mobileg2015.Shaders.BasicShader;
-import com.limjin.mobileg2015.Shaders.TextureShader;
 import com.limjin.mobileg2015.Utilities.MiscUtilities;
 
 import javax.microedition.khronos.opengles.GL10;
@@ -126,19 +123,27 @@ public class View
      *************************************************************************************************/
     private static void initShaders() {
 
-        //normal shader-------------------------------//
-        //String vert_texture1 = MiscUtilities.readTextFileFromRawResource(context, );
+        ///normal shader-------------------------------//
+        String vert_texture1 = MiscUtilities.readTextFileFromRawResource(context, R.raw.vert_texture1);
+        String frag_texture1 = MiscUtilities.readTextFileFromRawResource(context, R.raw.frag_texture1);
 
-        vertexShaderHandle = LoadShader(GLES20.GL_VERTEX_SHADER, TextureShader.vertexShader);
-        fragmentShaderHandle = LoadShader(GLES20.GL_FRAGMENT_SHADER, TextureShader.fragmentShader);
+        //light shader--------------------------------//
+        String vert_light = MiscUtilities.readTextFileFromRawResource(context, R.raw.vert_light);
+        String frag_light = MiscUtilities.readTextFileFromRawResource(context, R.raw.frag_light);
+
+        //normal shader-------------------------------//
+
+            vertexShaderHandle = LoadShader(GLES20.GL_VERTEX_SHADER, vert_texture1);
+            fragmentShaderHandle = LoadShader(GLES20.GL_FRAGMENT_SHADER, frag_texture1);
+
 
         //link and pass in attributes
         mPerVertexProgramHandle = createAndLinkProgram(vertexShaderHandle, fragmentShaderHandle,
                 new String[]{"a_Position", "a_Color", "a_Normal", "a_TexCoordinate"});
 
         //light shader-------------------------//
-        point_vertexShaderHandle = LoadShader(GLES20.GL_VERTEX_SHADER, BasicShader.pointVertexShader);
-        point_fragmentShaderHandle = LoadShader(GLES20.GL_FRAGMENT_SHADER, BasicShader.pointFragmentShader);
+        point_vertexShaderHandle = LoadShader(GLES20.GL_VERTEX_SHADER, vert_light);
+        point_fragmentShaderHandle = LoadShader(GLES20.GL_FRAGMENT_SHADER, frag_light);
 
         //link and pass in attributes
         mPointProgramHandle = createAndLinkProgram(point_vertexShaderHandle, point_fragmentShaderHandle,
@@ -235,8 +240,10 @@ public class View
     /*************************************************************************************************
      * Surface created: call in corrosponding func in Controller
      *************************************************************************************************/
-    public static void onSurfaceCreated()
+    public static void onSurfaceCreated(Context context)
     {
+        View.context = context;
+
         //clear the screen-------------------------------------------------//
         GLES20.glClearColor(255.f, 0f, 0f, 1f);
 

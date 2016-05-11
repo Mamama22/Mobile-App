@@ -72,6 +72,7 @@ public class MiscUtilities
     public static String readTextFileFromRawResource(final Context context,
                                                      final int resourceId)
     {
+
         final InputStream inputStream = context.getResources().openRawResource(
                 resourceId);
         final InputStreamReader inputStreamReader = new InputStreamReader(

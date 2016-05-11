@@ -259,7 +259,7 @@ public class Controller implements Renderer
     public void onSurfaceCreated(GL10 gl, EGLConfig config) {
 
         //View---------------------------------------//
-        View.onSurfaceCreated();
+        View.onSurfaceCreated(context);
 
         //Mesh-------------------------------------//
         cube.Init(cubePositionData, cubeColorData, cubeNormalData, TextureCoordinateData);

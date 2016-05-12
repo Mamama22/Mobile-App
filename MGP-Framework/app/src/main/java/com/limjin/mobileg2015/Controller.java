@@ -245,7 +245,7 @@ public class Controller implements Renderer
     //the context "hosting" this Controller---------------------//
     Context context;
 
-    MeshAdvanced cube = new MeshAdvanced();
+    MeshVBO_combined cube = new MeshVBO_combined();
 
     Controller(Context context)
     {
@@ -262,7 +262,7 @@ public class Controller implements Renderer
         View.onSurfaceCreated(context);
 
         //Mesh-------------------------------------//
-        cube.Init(cubePositionData, cubeColorData, cubeNormalData, TextureCoordinateData);
+        cube.Init(combinedBuffer(cubePositionData, cubeColorData, cubeNormalData, TextureCoordinateData));
         cube.LoadTexture(context, R.drawable.rubbish);
 
         angle = 0.f;
@@ -287,7 +287,7 @@ public class Controller implements Renderer
         View.SetTransMat_toTranslate(-3.8f, 0.f, 0.f);
         View.SetTransMat_toRotate(angle, 0.f, 1.f, 0.f);
         //View.SetTransMat_toScale(0.6f, 0.6f, 0.6f);
-        View.drawCube(cube);
+        View.drawMeshLight_VBO_combined(cube);
         angle += 1.f;
 
         if(angle >= 360.f)
@@ -299,9 +299,50 @@ public class Controller implements Renderer
         View.SetTransMat_toTranslate(1.6f, 0.f, -0.5f);
         View.SetTransMat_toRotate(angle, 0.f, 0.5f, 0.5f);
         //View.SetTransMat_toScale(0.8f, 0.8f, 0.8f);
-        View.drawCube(cube);
+        View.drawMeshLight_VBO_combined(cube);
 
         //pre render-------------------------------------------------//
         View.PostRender();
+    }
+
+    /*************************************************************************************************
+     * Combine buffers
+     *************************************************************************************************/
+    private float[] combinedBuffer(float[] vertices, float[] color, float[] normal, float[] texcoord)
+    {
+        /* total elements per vertex */
+        int total_Elements = Mesh.mPositionDataSize + Mesh.mColorDataSize + Mesh.mNormalDataSize + Mesh.mTextureCoordinateDataSize;
+
+        /* total vertices */
+        int total_vert = vertices.length / Mesh.mPositionDataSize;
+
+        /* combined float buffer */
+        float[] combined = new float[total_Elements * total_vert];
+
+        int vertCount = 0, colorCount = 0, normalCount = 0, texCount = 0;
+        for(int i = 0; i < combined.length;)
+        {
+            //Pos-------------------------------------//
+            combined[i++] = vertices[vertCount++];
+            combined[i++] = vertices[vertCount++];
+            combined[i++] = vertices[vertCount++];
+
+            //Color-------------------------------------//
+            combined[i++] = color[colorCount++];
+            combined[i++] = color[colorCount++];
+            combined[i++] = color[colorCount++];
+            combined[i++] = color[colorCount++];
+
+            //Normal-------------------------------------//
+            combined[i++] = normal[normalCount++];
+            combined[i++] = normal[normalCount++];
+            combined[i++] = normal[normalCount++];
+
+            //Tex-------------------------------------//
+            combined[i++] = texcoord[texCount++];
+            combined[i++] = texcoord[texCount++];
+        }
+
+        return combined;
     }
 }

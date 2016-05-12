@@ -9,6 +9,8 @@ import android.opengl.GLES20;
 import android.opengl.Matrix;
 import com.limjin.mobileg2015.Utilities.MiscUtilities;
 
+import java.nio.FloatBuffer;
+
 import javax.microedition.khronos.opengles.GL10;
 
 /*************************************************************************************************
@@ -262,7 +264,7 @@ public class View
         // Position the eye behind the origin.
         final float eyeX = 0.0f;
         final float eyeY = 0.0f;
-        final float eyeZ = 9.5f;
+        final float eyeZ = 6.5f;
 
         // We are looking toward the distance
         final float lookX = 0.0f;
@@ -385,69 +387,103 @@ public class View
 
     /*************************************************************************************************
      * Draw a mesh
-     *************************************************************************************************/
-    public static void drawMesh(Mesh mesh)
-    {
-        // Pass in the position information
-        mesh.vertices.position(mesh.mPositionOffset);
-        GLES20.glVertexAttribPointer(mPositionHandle, mesh.mPositionDataSize, GLES20.GL_FLOAT, false,
-                mesh.mStrideBytes, mesh.vertices);
-
-        GLES20.glEnableVertexAttribArray(mPositionHandle);
-
-        // Pass in the color information
-        mesh.vertices.position(mesh.mColorOffset);
-        GLES20.glVertexAttribPointer(mColorHandle, mesh.mColorDataSize, GLES20.GL_FLOAT, false,
-                mesh.mStrideBytes, mesh.vertices);
-
-        GLES20.glEnableVertexAttribArray(mColorHandle);
-
-        //=========================================================================================================//
-        // This multiplies the view matrix by the model matrix, and stores the result in the MVP matrix
-        // (which currently contains model * view).
-        Matrix.multiplyMM(mMVPMatrix, 0, mViewMatrix, 0, mModelMatrix, 0);
-
-        // This multiplies the modelview matrix by the projection matrix, and stores the result in the MVP matrix
-        // (which now contains model * view * projection).
-        Matrix.multiplyMM(mMVPMatrix, 0, mProjectionMatrix, 0, mMVPMatrix, 0);
-
-        GLES20.glUniformMatrix4fv(mMVPMatrixHandle, 1, false, mMVPMatrix, 0);
-        GLES20.glDrawArrays(GLES20.GL_TRIANGLES, 0, 36);
-    }
-
-    public static void drawCube(MeshAdvanced mesh)
+     *************************************************************************************************//*
+    public static void drawMeshLight(Mesh mesh)
     {
         //texture assign----------------------------------------------------//
         mTextureDataHandle = mesh.Texture_Handle;
 
-
-        // Pass in the position information
-        mesh.vertices.position(0);
+        //Rendering with client-side buffers-------------------------------------------------------------//
+        // Pass in the position information-----------------//
+        mesh.vertices.position(0);  //start reading from which pos (BYTES)
         GLES20.glVertexAttribPointer(mPositionHandle, mesh.mPositionDataSize, GLES20.GL_FLOAT, false,
                 0, mesh.vertices);
 
         GLES20.glEnableVertexAttribArray(mPositionHandle);
 
-        // Pass in the color information
+        // Pass in the color information-----------------//
         mesh.color_buffer.position(0);
         GLES20.glVertexAttribPointer(mColorHandle, mesh.mColorDataSize, GLES20.GL_FLOAT, false,
                 0, mesh.color_buffer);
 
         GLES20.glEnableVertexAttribArray(mColorHandle);
 
-        // Pass in the normal information
+        // Pass in the normal information-----------------//
         mesh.normal_buffer.position(0);
         GLES20.glVertexAttribPointer(mNormalHandle, mesh.mNormalDataSize, GLES20.GL_FLOAT, false,
                 0, mesh.normal_buffer);
 
         GLES20.glEnableVertexAttribArray(mNormalHandle);
 
-        // Pass in the texture information
+        // Pass in the texture information-----------------//
         mesh.texCoord_buffer.position(0);
         GLES20.glVertexAttribPointer(mTextureCoordinateHandle, mesh.mTextureCoordinateDataSize, GLES20.GL_FLOAT, false,
                 0, mesh.texCoord_buffer);
 
         GLES20.glEnableVertexAttribArray(mTextureCoordinateHandle);
+
+        //=========================================================================================================//
+        *//****************************************** Transformation ******************************************//*
+
+
+        *//****************************************** Draw ******************************************//*
+        GLES20.glDrawArrays(GLES20.GL_TRIANGLES, 0, 36);
+    }*/
+
+    /*************************************************************************************************
+     * Draw a mesh with VBO
+     *************************************************************************************************/
+    public static void drawMeshLight_VBO(MeshVBO mesh)
+    {
+        //texture assign----------------------------------------------------//
+        mTextureDataHandle = mesh.Texture_Handle;
+
+        //pre render---------------------------------------------//
+        mesh.PreRender(mPositionHandle, mColorHandle, mNormalHandle, mTextureCoordinateHandle);
+
+        //=========================================================================================================//
+        /****************************************** Transformation ******************************************/
+        // This multiplies the view matrix by the model matrix, and stores the result in the MVP matrix
+        // (which currently contains model * view).
+        Matrix.multiplyMM(mMVPMatrix, 0, mViewMatrix, 0, mModelMatrix, 0);
+
+        // Pass in the modelview matrix.
+        GLES20.glUniformMatrix4fv(mMVMatrixHandle, 1, false, mMVPMatrix, 0);
+
+        // This multiplies the modelview matrix by the projection matrix, and stores the result in the MVP matrix
+        // (which now contains model * view * projection).
+        Matrix.multiplyMM(mMVPMatrix, 0, mProjectionMatrix, 0, mMVPMatrix, 0);
+
+        // Pass in light power
+        GLES20.glUniform1f(mLightPowHandle, 2.f);
+
+        // Pass in the combined matrix.
+        GLES20.glUniformMatrix4fv(mMVPMatrixHandle, 1, false, mMVPMatrix, 0);
+
+        // Pass in the light position in eye space.
+        GLES20.glUniform3f(mLightPosHandle, mLightPosInEyeSpace[0], mLightPosInEyeSpace[1], mLightPosInEyeSpace[2]);
+
+        /****************************************** Texture ******************************************/
+        // Bind the texture to this unit.
+        GLES20.glBindTexture(GLES20.GL_TEXTURE_2D, mTextureDataHandle);
+
+        // Tell the texture uniform sampler to use this texture in the shader by binding to texture unit 0.
+        GLES20.glUniform1i(mTextureUniformHandle, 0);
+
+        /****************************************** Draw ******************************************/
+        GLES20.glDrawArrays(GLES20.GL_TRIANGLES, 0, 36);
+    }
+
+    /*************************************************************************************************
+     * Draw a mesh with VBO combined buffer
+     *************************************************************************************************/
+    public static void drawMeshLight_VBO_combined(MeshVBO_combined mesh)
+    {
+        //texture assign----------------------------------------------------//
+        mTextureDataHandle = mesh.Texture_Handle;
+
+        //pre render---------------------------------------------//
+        mesh.PreRender(mPositionHandle, mColorHandle, mNormalHandle, mTextureCoordinateHandle);
 
         //=========================================================================================================//
         /****************************************** Transformation ******************************************/

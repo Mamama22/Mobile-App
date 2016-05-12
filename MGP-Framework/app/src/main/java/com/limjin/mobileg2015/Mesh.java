@@ -3,9 +3,10 @@ package com.limjin.mobileg2015;
 /**
  * Created by tanyiecher on 5/5/2016.
  */
-
+import android.content.Context;
 import android.opengl.GLES20;
-import android.opengl.Matrix;
+
+import com.limjin.mobileg2015.Utilities.MiscUtilities;
 
 import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
@@ -14,39 +15,74 @@ import java.nio.FloatBuffer;
 /*************************************************************************************************
  * Mesh class: loads mesh into it
  *************************************************************************************************/
-public class Mesh
+public abstract class Mesh
 {
     /** How many bytes per float. */
-    public int mBytesPerFloat = 4;
-
-    /** How many elements per vertex. */
-    public int mStrideBytes = 7 * mBytesPerFloat;
+    public static final int mBytesPerFloat = 4;
 
     /** Size of the position data in elements. */
-    public int mPositionDataSize = 3;
-
-    /** Offset of the position data. */
-    public int mPositionOffset = 0;
-
-    /** Offset of the color data. */
-    public int mColorOffset = 3;
+    public static final int mPositionDataSize = 3;
 
     /** Size of the color data in elements. */
-    public int mColorDataSize = 4;
+    public static final int mColorDataSize = 4;
 
-    /** Buffer contains vertices */
-    public FloatBuffer vertices;
+    /** Size of the normal data in elements. */
+    public static final int mNormalDataSize = 3;
+
+    /** Size of the texture coordinate data in elements. */
+    public static final int mTextureCoordinateDataSize = 2;
+
+    /* Important variables */
+    public int Texture_Handle = 0;  //points to texture
 
     /*************************************************************************************************
-     * Init:
-     * param verticesData: the vertice data in this format: // X, Y, Z,
+     * Assign buffer with native mem utility
      *************************************************************************************************/
-    public void Init(float[] verticesData)
+    protected static FloatBuffer SetupBuffer(float[] data)
     {
-        // Initialize the buffers.------------------------------------------------//
-        vertices = ByteBuffer.allocateDirect(verticesData.length * mBytesPerFloat)
+        //1) Initialize the buffers.------------------------------------------------//
+        //.......................................................//
+        // Allocate a direct block of memory on the native heap,
+        // size in bytes is equal to cubePositions.length * BYTES_PER_FLOAT.
+        // BYTES_PER_FLOAT is equal to 4, since a float is 32-bits, or 4 bytes.
+        //-------------------------------------------------------//
+        // Floats can be in big-endian or little-endian order.
+        // We want the same as the native platform.
+        //.......................................................//
+        FloatBuffer theBuffer = ByteBuffer.allocateDirect(data.length * mBytesPerFloat)
                 .order(ByteOrder.nativeOrder()).asFloatBuffer();
 
-        vertices.put(verticesData).position(0);
+        //2) Copy data from the Java heap to the native heap.
+        theBuffer.put(data);
+        theBuffer.position(0); //3) Reset the buffer position to the beginning of the buffer.
+        return theBuffer;
+    }
+
+    public void LoadTexture(Context context, int resourceID)
+    {
+        Texture_Handle = MiscUtilities.loadTexture(context, resourceID);
+    }
+
+    abstract void PreRender(int posHand, int colorHand, int normalHand, int texHand);
+
+    /*************************************************************************************************
+     * Bind whole buffer to VBO
+     * param 1: the buffer index in GPU
+     * param 2: data size (eg. texCoord = 2)
+     * param 3: the buffer handle to corresponding attribute in shader
+     *************************************************************************************************/
+    protected static void Bind_buffer_to_VBO(int bufferIndex, int dataSize, int bufferHandle, int stride, int startFromByte)
+    {
+        GLES20.glBindBuffer(GLES20.GL_ARRAY_BUFFER, bufferIndex);
+        GLES20.glEnableVertexAttribArray(bufferHandle);
+
+        //glVertexAttribPointer params:------//
+        //1) mPositionHandle: The OpenGL index of the position attribute of our shader program.
+        //2) POSITION_DATA_SIZE: How many elements (floats) define this attribute. (texCoord == 2 floats)
+        //3) GL_FLOAT: The type of each element.
+        //4) false: Should fixed-point data be normalized? Not applicable since we are using floating-point data.
+        //5) stride: set to 0 means read all elements sequentially (eg. pos, pos, pos) (BYTES)
+        //6) mCubePositions: The pointer to our buffer, containing all of the positional data.
+        GLES20.glVertexAttribPointer(bufferHandle, dataSize, GLES20.GL_FLOAT, false, stride, startFromByte);
     }
 }

@@ -16,10 +16,20 @@ import java.io.InputStream;
 import java.io.InputStreamReader;
 
 /*********************************************************************************************
- * Some utilities necessary but dunno put where
+ * Some utilities and variables necessary
  *********************************************************************************************/
-public class MiscUtilities
+public class Misc_Utilities
 {
+    private static Context context; //the context hosting this MVC
+
+    /*********************************************************************************************
+     * Init: MUST CALL BEFORE DOING ANYTHING ELSE!!!
+     *********************************************************************************************/
+    public static void Init(Context context)
+    {
+        Misc_Utilities.context = context;
+    }
+
     /*********************************************************************************************
      * Load in texture from resource ID
      *********************************************************************************************/
@@ -98,4 +108,9 @@ public class MiscUtilities
 
         return body.toString();
     }
+
+    /*********************************************************************************************
+     * Getters
+     *********************************************************************************************/
+    public static Context GetCurrentContext(){return context;}
 }

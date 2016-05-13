@@ -3,10 +3,7 @@ package com.limjin.mobileg2015;
 /**
  * Created by tanyiecher on 5/5/2016.
  */
-import android.content.Context;
 import android.opengl.GLES20;
-
-import com.limjin.mobileg2015.Utilities.MiscUtilities;
 
 import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
@@ -17,23 +14,9 @@ import java.nio.FloatBuffer;
  *************************************************************************************************/
 public abstract class Mesh
 {
-    /** How many bytes per float. */
-    public static final int mBytesPerFloat = 4;
-
-    /** Size of the position data in elements. */
-    public static final int mPositionDataSize = 3;
-
-    /** Size of the color data in elements. */
-    public static final int mColorDataSize = 4;
-
-    /** Size of the normal data in elements. */
-    public static final int mNormalDataSize = 3;
-
-    /** Size of the texture coordinate data in elements. */
-    public static final int mTextureCoordinateDataSize = 2;
-
     /* Important variables */
-    public int Texture_Handle = 0;  //points to texture
+    public int Texture_Handle = MeshMan.TEX_NONE;  //points to texture
+    protected int[] Attributes;
 
     /*************************************************************************************************
      * Assign buffer with native mem utility
@@ -49,7 +32,7 @@ public abstract class Mesh
         // Floats can be in big-endian or little-endian order.
         // We want the same as the native platform.
         //.......................................................//
-        FloatBuffer theBuffer = ByteBuffer.allocateDirect(data.length * mBytesPerFloat)
+        FloatBuffer theBuffer = ByteBuffer.allocateDirect(data.length * MeshMan.mBytesPerFloat)
                 .order(ByteOrder.nativeOrder()).asFloatBuffer();
 
         //2) Copy data from the Java heap to the native heap.
@@ -58,12 +41,12 @@ public abstract class Mesh
         return theBuffer;
     }
 
-    public void LoadTexture(Context context, int resourceID)
-    {
-        Texture_Handle = MiscUtilities.loadTexture(context, resourceID);
-    }
+    //public void LoadTexture(Context context, int resourceID)
+    //{
+    //    Texture_Handle = Misc_Utilities.loadTexture(context, resourceID);
+    //}
 
-    abstract void PreRender(int posHand, int colorHand, int normalHand, int texHand);
+    abstract void PreRender(int[] AttribHandles);
 
     /*************************************************************************************************
      * Bind whole buffer to VBO

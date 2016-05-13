@@ -1,4 +1,4 @@
-package com.limjin.mobileg2015;
+package com.limjin.mobileg2015.MyTypes;
 
 import android.graphics.Bitmap;
 import android.graphics.Canvas;

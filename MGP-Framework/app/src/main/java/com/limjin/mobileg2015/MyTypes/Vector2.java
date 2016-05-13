@@ -1,4 +1,4 @@
-package com.limjin.mobileg2015;
+package com.limjin.mobileg2015.MyTypes;
 
 /*************************************************************************************
 Vector2

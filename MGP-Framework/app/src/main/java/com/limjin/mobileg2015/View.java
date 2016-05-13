@@ -7,9 +7,7 @@ package com.limjin.mobileg2015;
 import android.content.Context;
 import android.opengl.GLES20;
 import android.opengl.Matrix;
-import com.limjin.mobileg2015.Utilities.MiscUtilities;
-
-import java.nio.FloatBuffer;
+import com.limjin.mobileg2015.Utilities.Misc_Utilities;
 
 import javax.microedition.khronos.opengles.GL10;
 
@@ -38,7 +36,8 @@ public class View
     protected static int point_vertexShaderHandle = 0;  //shaders for light
     protected static int point_fragmentShaderHandle = 0;
 
-    //Handles: ATTRIBUTES and UNIFORMS (seperate next time)--------------------------------------------------//
+    //Handles: --------------------------------------------------//
+    //UNIFORM HANDLE-----------------------------------------------------------------//
     /** This will be used to pass in the transformation matrix. */
     protected static int mMVPMatrixHandle = 0;
 
@@ -51,23 +50,29 @@ public class View
     /** This will be used to pass in the light power. */
     protected static int mLightPowHandle = 0;
 
-    /** This will be used to pass in model position information. */
-    protected static int mPositionHandle = 0;
+    /** This is a handle to our texture data. */
+    private static int mTextureDataHandle = 0;
 
-    /** This will be used to pass in model color information. */
-    protected static int mColorHandle = 0;
-
-    /** This will be used to pass in model normal information. */
-    protected static int mNormalHandle = 0;
+    /** This is a handle to our texture data. */
+    private static int mTextureFlagHandle = 0;
 
     /** This will be used to pass in the texture. */
     protected static int mTextureUniformHandle = 0;
 
-    /** This will be used to pass in model texture coordinate information. */
-    private static int mTextureCoordinateHandle = 0;
+    //ATTRIBUTES HANDLE-----------------------------------------------------------------//
+    /** This will be used to pass in model position information. */
+    //protected static int mPositionHandle = 0;
 
-    /** This is a handle to our texture data. */
-    private static int mTextureDataHandle = 0;
+    /** This will be used to pass in model color information. */
+    //protected static int mColorHandle = 0;
+
+    /** This will be used to pass in model normal information. */
+   // protected static int mNormalHandle = 0;
+
+    /** This will be used to pass in model texture coordinate information. */
+    //private static int mTextureCoordinateHandle = 0;
+
+    private static int[] mAttribHandles = new int[MeshMan.TOTAL_ATTRIBUTES];
 
     //Matrices---------------------------------------------------------------------//
     /** Store the projection matrix. This is used to project the scene onto a 2D viewport. */
@@ -126,12 +131,12 @@ public class View
     private static void initShaders() {
 
         ///normal shader-------------------------------//
-        String vert_texture1 = MiscUtilities.readTextFileFromRawResource(context, R.raw.vert_texture1);
-        String frag_texture1 = MiscUtilities.readTextFileFromRawResource(context, R.raw.frag_texture1);
+        String vert_texture1 = Misc_Utilities.readTextFileFromRawResource(context, R.raw.vert_texture1);
+        String frag_texture1 = Misc_Utilities.readTextFileFromRawResource(context, R.raw.frag_texture1);
 
         //light shader--------------------------------//
-        String vert_light = MiscUtilities.readTextFileFromRawResource(context, R.raw.vert_light);
-        String frag_light = MiscUtilities.readTextFileFromRawResource(context, R.raw.frag_light);
+        String vert_light = Misc_Utilities.readTextFileFromRawResource(context, R.raw.vert_light);
+        String frag_light = Misc_Utilities.readTextFileFromRawResource(context, R.raw.frag_light);
 
         //normal shader-------------------------------//
 
@@ -139,7 +144,7 @@ public class View
             fragmentShaderHandle = LoadShader(GLES20.GL_FRAGMENT_SHADER, frag_texture1);
 
 
-        //link and pass in attributes
+        //link and pass in attributes (match ATTRIBUTES LIST)
         mPerVertexProgramHandle = createAndLinkProgram(vertexShaderHandle, fragmentShaderHandle,
                 new String[]{"a_Position", "a_Color", "a_Normal", "a_TexCoordinate"});
 
@@ -242,9 +247,9 @@ public class View
     /*************************************************************************************************
      * Surface created: call in corrosponding func in Controller
      *************************************************************************************************/
-    public static void onSurfaceCreated(Context context)
+    public static void onSurfaceCreated()
     {
-        View.context = context;
+        View.context = Misc_Utilities.GetCurrentContext();
 
         //clear the screen-------------------------------------------------//
         GLES20.glClearColor(255.f, 0f, 0f, 1f);
@@ -337,14 +342,10 @@ public class View
         mLightPosHandle = GLES20.glGetUniformLocation(mPerVertexProgramHandle, "u_LightPos");
         mLightPowHandle = GLES20.glGetUniformLocation(mPerVertexProgramHandle, "u_Power");
         mTextureUniformHandle = GLES20.glGetUniformLocation(mPerVertexProgramHandle, "u_Texture");
+        mTextureFlagHandle = GLES20.glGetUniformLocation(mPerVertexProgramHandle, "u_TextureEnabled");
 
-        mPositionHandle = GLES20.glGetAttribLocation(mPerVertexProgramHandle, "a_Position");
-        mColorHandle = GLES20.glGetAttribLocation(mPerVertexProgramHandle, "a_Color");
-        mNormalHandle = GLES20.glGetAttribLocation(mPerVertexProgramHandle, "a_Normal");
-        mTextureCoordinateHandle = GLES20.glGetAttribLocation(mPerVertexProgramHandle, "a_TexCoordinate");
-
-        // Set the active texture unit to texture unit 0, ASSUMES ALL USES TEXTURE 0------------------//
-        GLES20.glActiveTexture(GLES20.GL_TEXTURE0);
+        for(int i = 0; i < MeshMan.TOTAL_ATTRIBUTES; ++i)
+            mAttribHandles[i] = GLES20.glGetAttribLocation(mPerVertexProgramHandle, MeshMan.DataName_Attrib[i]);
     }
 
     //=============================================================================================================================//
@@ -386,95 +387,6 @@ public class View
     }
 
     /*************************************************************************************************
-     * Draw a mesh
-     *************************************************************************************************//*
-    public static void drawMeshLight(Mesh mesh)
-    {
-        //texture assign----------------------------------------------------//
-        mTextureDataHandle = mesh.Texture_Handle;
-
-        //Rendering with client-side buffers-------------------------------------------------------------//
-        // Pass in the position information-----------------//
-        mesh.vertices.position(0);  //start reading from which pos (BYTES)
-        GLES20.glVertexAttribPointer(mPositionHandle, mesh.mPositionDataSize, GLES20.GL_FLOAT, false,
-                0, mesh.vertices);
-
-        GLES20.glEnableVertexAttribArray(mPositionHandle);
-
-        // Pass in the color information-----------------//
-        mesh.color_buffer.position(0);
-        GLES20.glVertexAttribPointer(mColorHandle, mesh.mColorDataSize, GLES20.GL_FLOAT, false,
-                0, mesh.color_buffer);
-
-        GLES20.glEnableVertexAttribArray(mColorHandle);
-
-        // Pass in the normal information-----------------//
-        mesh.normal_buffer.position(0);
-        GLES20.glVertexAttribPointer(mNormalHandle, mesh.mNormalDataSize, GLES20.GL_FLOAT, false,
-                0, mesh.normal_buffer);
-
-        GLES20.glEnableVertexAttribArray(mNormalHandle);
-
-        // Pass in the texture information-----------------//
-        mesh.texCoord_buffer.position(0);
-        GLES20.glVertexAttribPointer(mTextureCoordinateHandle, mesh.mTextureCoordinateDataSize, GLES20.GL_FLOAT, false,
-                0, mesh.texCoord_buffer);
-
-        GLES20.glEnableVertexAttribArray(mTextureCoordinateHandle);
-
-        //=========================================================================================================//
-        *//****************************************** Transformation ******************************************//*
-
-
-        *//****************************************** Draw ******************************************//*
-        GLES20.glDrawArrays(GLES20.GL_TRIANGLES, 0, 36);
-    }*/
-
-    /*************************************************************************************************
-     * Draw a mesh with VBO
-     *************************************************************************************************/
-    public static void drawMeshLight_VBO(MeshVBO mesh)
-    {
-        //texture assign----------------------------------------------------//
-        mTextureDataHandle = mesh.Texture_Handle;
-
-        //pre render---------------------------------------------//
-        mesh.PreRender(mPositionHandle, mColorHandle, mNormalHandle, mTextureCoordinateHandle);
-
-        //=========================================================================================================//
-        /****************************************** Transformation ******************************************/
-        // This multiplies the view matrix by the model matrix, and stores the result in the MVP matrix
-        // (which currently contains model * view).
-        Matrix.multiplyMM(mMVPMatrix, 0, mViewMatrix, 0, mModelMatrix, 0);
-
-        // Pass in the modelview matrix.
-        GLES20.glUniformMatrix4fv(mMVMatrixHandle, 1, false, mMVPMatrix, 0);
-
-        // This multiplies the modelview matrix by the projection matrix, and stores the result in the MVP matrix
-        // (which now contains model * view * projection).
-        Matrix.multiplyMM(mMVPMatrix, 0, mProjectionMatrix, 0, mMVPMatrix, 0);
-
-        // Pass in light power
-        GLES20.glUniform1f(mLightPowHandle, 2.f);
-
-        // Pass in the combined matrix.
-        GLES20.glUniformMatrix4fv(mMVPMatrixHandle, 1, false, mMVPMatrix, 0);
-
-        // Pass in the light position in eye space.
-        GLES20.glUniform3f(mLightPosHandle, mLightPosInEyeSpace[0], mLightPosInEyeSpace[1], mLightPosInEyeSpace[2]);
-
-        /****************************************** Texture ******************************************/
-        // Bind the texture to this unit.
-        GLES20.glBindTexture(GLES20.GL_TEXTURE_2D, mTextureDataHandle);
-
-        // Tell the texture uniform sampler to use this texture in the shader by binding to texture unit 0.
-        GLES20.glUniform1i(mTextureUniformHandle, 0);
-
-        /****************************************** Draw ******************************************/
-        GLES20.glDrawArrays(GLES20.GL_TRIANGLES, 0, 36);
-    }
-
-    /*************************************************************************************************
      * Draw a mesh with VBO combined buffer
      *************************************************************************************************/
     public static void drawMeshLight_VBO_combined(MeshVBO_combined mesh)
@@ -483,7 +395,7 @@ public class View
         mTextureDataHandle = mesh.Texture_Handle;
 
         //pre render---------------------------------------------//
-        mesh.PreRender(mPositionHandle, mColorHandle, mNormalHandle, mTextureCoordinateHandle);
+        mesh.PreRender(mAttribHandles);
 
         //=========================================================================================================//
         /****************************************** Transformation ******************************************/
@@ -507,12 +419,21 @@ public class View
         // Pass in the light position in eye space.
         GLES20.glUniform3f(mLightPosHandle, mLightPosInEyeSpace[0], mLightPosInEyeSpace[1], mLightPosInEyeSpace[2]);
 
-        /****************************************** Texture ******************************************/
-        // Bind the texture to this unit.
-        GLES20.glBindTexture(GLES20.GL_TEXTURE_2D, mTextureDataHandle);
+        // Pass in the light position in eye space.
+        if(mTextureDataHandle == MeshMan.textureID_List[MeshMan.TEX_NONE])
+            GLES20.glUniform1i(mTextureFlagHandle, 0);
+        else {
+            GLES20.glUniform1i(mTextureFlagHandle, 1);
+            /****************************************** Texture ******************************************/
+            // Set the active texture unit to texture unit 0, ASSUMES ALL USES TEXTURE 0------------------//
+            GLES20.glActiveTexture(GLES20.GL_TEXTURE0);
 
-        // Tell the texture uniform sampler to use this texture in the shader by binding to texture unit 0.
-        GLES20.glUniform1i(mTextureUniformHandle, 0);
+            // Bind the texture to this unit.
+            GLES20.glBindTexture(GLES20.GL_TEXTURE_2D, mTextureDataHandle);
+
+            // Tell the texture uniform sampler to use this texture in the shader by binding to texture unit 0.
+            GLES20.glUniform1i(mTextureUniformHandle, 0);
+        }
 
         /****************************************** Draw ******************************************/
         GLES20.glDrawArrays(GLES20.GL_TRIANGLES, 0, 36);
@@ -540,6 +461,11 @@ public class View
         // Draw the point.
         GLES20.glDrawArrays(GLES20.GL_POINTS, 0, 1);
     }
+
+    /*************************************************************************************************
+     * Render text
+     *************************************************************************************************/
+
 
     /*************************************************************************************************
      * Set to mModelMatrix(TRANSFORMATION MAT) Identity

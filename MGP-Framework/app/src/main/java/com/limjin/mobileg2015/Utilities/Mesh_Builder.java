@@ -13,7 +13,7 @@ import com.limjin.mobileg2015.MeshVBO_combined;
 public class Mesh_Builder
 {
     /*************************************************************************************************
-     * Variables
+     * Cube
      *************************************************************************************************/
     // Define points for a cube.
 
@@ -238,6 +238,31 @@ public class Mesh_Builder
             };
 
     /*************************************************************************************************
+     * Quad
+     *************************************************************************************************/
+    final static float[] quad_PositionData =
+            {
+                    // Front face
+                    -1.0f, 1.0f, 1.0f,
+                    -1.0f, -1.0f, 1.0f,
+                    1.0f, 1.0f, 1.0f,
+                    -1.0f, -1.0f, 1.0f,
+                    1.0f, -1.0f, 1.0f,
+                    1.0f, 1.0f, 1.0f,
+            };
+
+    final static float[] quadFBO_TextureCoordinateData =
+            {
+                    // Front face
+                    0.0f, 1.0f,
+                    0.0f, 0.0f,
+                    1.0f, 1.0f,
+                    0.0f, 0.0f,
+                    1.0f, 0.0f,
+                    1.0f, 1.0f,
+            };
+
+    /*************************************************************************************************
     * Utilities: Gen Attributes:
      * 0 = vert, 1 = normal, 2 = color, 3 (or 2 if no color) = tex
      *************************************************************************************************/
@@ -297,6 +322,33 @@ public class Mesh_Builder
             bufferList[count++] = cubeColorData;
         if(texture_ID != MeshMan.TEX_NONE)
             bufferList[count++] = TextureCoordinateData;
+
+        //Combine buffer------------------------------------------------------------//
+        float[] combinedBuffer = Buffer_Utilities.combinedBuffer(bufferList, attributes);
+
+        //Create mesh--------------------------------------------------------------//
+        MeshVBO_combined mesh = new MeshVBO_combined();
+        mesh.Init(attributes, combinedBuffer);
+
+        mesh.Texture_Handle = MeshMan.textureID_List[texture_ID];
+
+        return mesh;
+    }
+
+    /*************************************************************************************************
+     * Quad for FBO Generator: if texture provided, color and alpha will not be counted
+     *************************************************************************************************/
+    public static MeshVBO_combined GenerateQuad_FBO(int texture_ID)
+    {
+        /** Attributes-----------------------------------------------------------**/
+        int[] attributes = new int[2];
+        attributes[0] = MeshMan.ATTRIBUTE_VERT;
+        attributes[1] = MeshMan.ATTRIBUTE_TEXTURE;
+
+        //populate buffer (FOLLOW THE ORDER IN ATTRUBTES)------------------------------------//
+        float[][] bufferList = new float[2][];
+        bufferList[0] = quad_PositionData;
+        bufferList[1] = quadFBO_TextureCoordinateData;
 
         //Combine buffer------------------------------------------------------------//
         float[] combinedBuffer = Buffer_Utilities.combinedBuffer(bufferList, attributes);

@@ -7,6 +7,9 @@ package com.limjin.mobileg2015;
 import android.content.Context;
 import android.opengl.GLES20;
 import android.opengl.Matrix;
+
+import com.limjin.mobileg2015.Utilities.Buffer_Utilities;
+import com.limjin.mobileg2015.Utilities.Mesh_Builder;
 import com.limjin.mobileg2015.Utilities.Misc_Utilities;
 
 import javax.microedition.khronos.opengles.GL10;
@@ -27,12 +30,20 @@ public class View
     //Program handles----------------------------//
     /** This is a handle to our per-vertex cube shading program. */
     private static int mPerVertexProgramHandle = 0;
+    private static int mPass2ProgramHandle = 0;
     /** This is a handle to our light point program. */
     private static int mPointProgramHandle = 0;
+
+    //Program Attributes----------------------------//
+    private static int[] mPerVertexProgram_Attrib = new int[4];
+    private static int[] mPass2Program_Attrib = new int[2];
+    private static int[] mPointProgram_Attrib = new int[1];
 
     //Shander Handles----------------------------------------------------------------//
     protected static int vertexShaderHandle = 0;  //shaders
     protected static int fragmentShaderHandle = 0;
+    protected static int pass2_vertexShaderHandle = 0;  //shaders for pass 2
+    protected static int pass2_fragmentShaderHandle = 0;
     protected static int point_vertexShaderHandle = 0;  //shaders for light
     protected static int point_fragmentShaderHandle = 0;
 
@@ -60,18 +71,6 @@ public class View
     protected static int mTextureUniformHandle = 0;
 
     //ATTRIBUTES HANDLE-----------------------------------------------------------------//
-    /** This will be used to pass in model position information. */
-    //protected static int mPositionHandle = 0;
-
-    /** This will be used to pass in model color information. */
-    //protected static int mColorHandle = 0;
-
-    /** This will be used to pass in model normal information. */
-   // protected static int mNormalHandle = 0;
-
-    /** This will be used to pass in model texture coordinate information. */
-    //private static int mTextureCoordinateHandle = 0;
-
     private static int[] mAttribHandles = new int[MeshMan.TOTAL_ATTRIBUTES];
 
     //Matrices---------------------------------------------------------------------//
@@ -121,6 +120,15 @@ public class View
 
     protected static Context context;
 
+    //G-Buffer----------------------------//
+    protected static int[] gBuffer = new int[1];   //G-Buffer (Framebuffer type)
+    protected static int[] gTexture = new int[1];
+    protected static int[] gTex_Depth_Stencil = new int[1];
+    protected static int[] RBO = new int[1];    //Render Buffer Object (Depth and stencil)
+
+    //For framebuffer--------------------------//
+    protected static MeshVBO_combined outputQuad;
+
     //=============================================================================================================================//
     //|||||||||||||||||||||||||||||||||||||| *** INIT *** ||||||||||||||||||||||||||||||||||||||//
     //=============================================================================================================================//
@@ -138,23 +146,40 @@ public class View
         String vert_light = Misc_Utilities.readTextFileFromRawResource(context, R.raw.vert_light);
         String frag_light = Misc_Utilities.readTextFileFromRawResource(context, R.raw.frag_light);
 
+        //Pass2 shader------------------------------------------------------------------//
+        String vert_pass2 = Misc_Utilities.readTextFileFromRawResource(context, R.raw.vert_pass2);
+        String frag_pass2 = Misc_Utilities.readTextFileFromRawResource(context, R.raw.frag_pass2);
+
         //normal shader-------------------------------//
-
-            vertexShaderHandle = LoadShader(GLES20.GL_VERTEX_SHADER, vert_texture1);
-            fragmentShaderHandle = LoadShader(GLES20.GL_FRAGMENT_SHADER, frag_texture1);
-
+        vertexShaderHandle = LoadShader(GLES20.GL_VERTEX_SHADER, vert_texture1);
+        fragmentShaderHandle = LoadShader(GLES20.GL_FRAGMENT_SHADER, frag_texture1);
 
         //link and pass in attributes (match ATTRIBUTES LIST)
+        mPerVertexProgram_Attrib[0] = MeshMan.ATTRIBUTE_VERT;
+        mPerVertexProgram_Attrib[1] = MeshMan.ATTRIBUTE_COLOR;
+        mPerVertexProgram_Attrib[2] = MeshMan.ATTRIBUTE_NORMAL;
+        mPerVertexProgram_Attrib[3] = MeshMan.ATTRIBUTE_TEXTURE;
         mPerVertexProgramHandle = createAndLinkProgram(vertexShaderHandle, fragmentShaderHandle,
-                new String[]{"a_Position", "a_Color", "a_Normal", "a_TexCoordinate"});
+                mPerVertexProgram_Attrib);
+
+        //pass 2 shader-------------------------------//
+        pass2_vertexShaderHandle = LoadShader(GLES20.GL_VERTEX_SHADER, vert_pass2);
+        pass2_fragmentShaderHandle = LoadShader(GLES20.GL_FRAGMENT_SHADER, frag_pass2);
+
+        //link and pass in attributes (match ATTRIBUTES LIST)
+        mPass2Program_Attrib[0] = MeshMan.ATTRIBUTE_VERT;
+        mPass2Program_Attrib[1] = MeshMan.ATTRIBUTE_TEXTURE;
+        mPass2ProgramHandle = createAndLinkProgram(pass2_vertexShaderHandle, pass2_fragmentShaderHandle,
+                mPass2Program_Attrib);
 
         //light shader-------------------------//
         point_vertexShaderHandle = LoadShader(GLES20.GL_VERTEX_SHADER, vert_light);
         point_fragmentShaderHandle = LoadShader(GLES20.GL_FRAGMENT_SHADER, frag_light);
 
         //link and pass in attributes
+        mPointProgram_Attrib[0] = MeshMan.ATTRIBUTE_VERT;
         mPointProgramHandle = createAndLinkProgram(point_vertexShaderHandle, point_fragmentShaderHandle,
-                new String[] {"a_Position"});
+                mPointProgram_Attrib);
     }
 
     /*************************************************************************************************
@@ -200,8 +225,15 @@ public class View
      * @param attributes Attributes that need to be bound to the program.
      * @return An OpenGL handle to the program.
      *************************************************************************************************/
-    private static int createAndLinkProgram(final int vertexShaderHandle, final int fragmentShaderHandle, final String[] attributes)
+    private static int createAndLinkProgram(final int vertexShaderHandle, final int fragmentShaderHandle, final int[] attributes)
     {
+        //Set Attribute list-------------------------------------------------------//
+        String[] attribList = new String[attributes.length];
+        for(int i = 0; i < attributes.length; ++i)
+        {
+            attribList[i] = MeshMan.DataName_Attrib[attributes[i]];
+        }
+
         int programHandle = GLES20.glCreateProgram();
 
         if (programHandle != 0) {
@@ -214,10 +246,10 @@ public class View
             // Bind attributes (ATTRIBUTES MUST BE BINDED TO SHADER)
             if (attributes != null)
             {
-                final int size = attributes.length;
+                final int size = attribList.length;
                 for (int i = 0; i < size; i++)
                 {
-                    GLES20.glBindAttribLocation(programHandle, i, attributes[i]);
+                    GLES20.glBindAttribLocation(programHandle, i, attribList[i]);
                 }
             }
 
@@ -254,11 +286,15 @@ public class View
         //clear the screen-------------------------------------------------//
         GLES20.glClearColor(255.f, 0f, 0f, 1f);
 
-        // Use culling to remove back faces.
+        // No culling of back faces
         GLES20.glEnable(GLES20.GL_CULL_FACE);
 
-        // Enable depth testing
+        // No depth testing
         GLES20.glEnable(GLES20.GL_DEPTH_TEST);
+
+        // Enable blending
+        //GLES20.glEnable(GLES20.GL_BLEND);
+        //GLES20.glBlendFunc(GLES20.GL_ONE, GLES20.GL_ONE);
 
         //init shaders------------------------------//
         initShaders();
@@ -290,6 +326,51 @@ public class View
         LightPos[0] = 0.f;LightPos[1] = 0.f;LightPos[2] = 1.f;
     }
 
+    /*************************************************************************************************
+     * Setup G-Buffer
+     *************************************************************************************************/
+    private static void Set_G_Buffer()
+    {
+        //Create the output quad----------------------------------//
+        outputQuad = Mesh_Builder.GenerateQuad_FBO(MeshMan.TEX_RECYCLE);
+
+        //Frame buffer---------------------------------------------------//
+        GLES20.glGenFramebuffers(1, gBuffer, 0);
+        GLES20.glBindFramebuffer(GLES20.GL_FRAMEBUFFER, gBuffer[0]);
+
+        //Bind output to this texture----------------------//
+        gTexture = Buffer_Utilities.generateAttachmentTexture(mWidth, mHeight);
+
+        /*Attach texture to our frame buffer: texture now acts as color/stencil buffer------------------------//
+        -target: the framebuffer type we're targeting (draw, read or both).
+        -attachment: the type of attachment we're going to attach. Right now we're attaching a color attachment..
+        -textarget: the type of the texture you want to attach.
+        -texture: the actual texture to attach.
+        -level: the mipmap level. We keep this at 0.
+            */
+        GLES20.glFramebufferTexture2D(GLES20.GL_FRAMEBUFFER, GLES20.GL_COLOR_ATTACHMENT0, GLES20.GL_TEXTURE_2D, gTexture[0], 0);
+
+        /* Render Buffer Object----------------------------------------------------------------------------- */
+        GLES20.glGenRenderbuffers(1, RBO, 0);
+
+        //create a depth and stencil RBO----------------------------------//
+        GLES20.glBindRenderbuffer(GLES20.GL_RENDERBUFFER, RBO[0]);
+        GLES20.glRenderbufferStorage(GLES20.GL_RENDERBUFFER, Buffer_Utilities.DEPTH24_STENCIL8_OES, mWidth, mHeight);
+
+        /*bind the RBOs to our frame buffer------------------------------------------------------------------*/
+        GLES20.glFramebufferRenderbuffer(GLES20.GL_FRAMEBUFFER, Buffer_Utilities.DEPTH_STENCIL_OES, GLES20.GL_RENDERBUFFER, RBO[0]);
+
+        GLES20.glBindRenderbuffer(GLES20.GL_RENDERBUFFER, 0);   //unbind cos we do not need anymore
+
+
+        //check if framebuffer compeltely set up---------------------------------//
+        if(GLES20.glCheckFramebufferStatus(GLES20.GL_FRAMEBUFFER) != GLES20.GL_FRAMEBUFFER_COMPLETE)
+            throw new RuntimeException("FUCK U");
+
+        //unbind frame buffer so we do not render to wrong buffer?---------------------------//
+        GLES20.glBindFramebuffer(GLES20.GL_FRAMEBUFFER, 0);
+    }
+
     //=============================================================================================================================//
     //|||||||||||||||||||||||||||||||||||||| *** RUNTIME *** ||||||||||||||||||||||||||||||||||||||//
     //=============================================================================================================================//
@@ -304,6 +385,11 @@ public class View
 
         mWidth = width;
         mHeight = height;
+
+        //generate own custom framebuffer-------------------------------//
+        //WARNING: onSurfaceChanged(..) called AFTER onSurfaceCreated(..), which means
+        //widht and height not available except for this
+        Set_G_Buffer();
 
         //Need recreate shaders everytime reset?-----------------------//
         mSurfaceCreated = false;
@@ -330,7 +416,7 @@ public class View
     /*************************************************************************************************
      * Set up shader and uniforms (NON_LIGHT SNADER, WE HAVE MULTIPLE SHADERS)
      *************************************************************************************************/
-    protected static void SetShaderAndUniforms()
+    protected static void SetShaderAndUniforms_Pass1()
     {
         // Tell OpenGL to use this program when rendering.
         GLES20.glUseProgram(mPerVertexProgramHandle);
@@ -344,47 +430,63 @@ public class View
         mTextureUniformHandle = GLES20.glGetUniformLocation(mPerVertexProgramHandle, "u_Texture");
         mTextureFlagHandle = GLES20.glGetUniformLocation(mPerVertexProgramHandle, "u_TextureEnabled");
 
-        for(int i = 0; i < MeshMan.TOTAL_ATTRIBUTES; ++i)
-            mAttribHandles[i] = GLES20.glGetAttribLocation(mPerVertexProgramHandle, MeshMan.DataName_Attrib[i]);
+        for(int i = 0; i < mPerVertexProgram_Attrib.length; ++i)
+            mAttribHandles[mPerVertexProgram_Attrib[i]] = GLES20.glGetAttribLocation(mPerVertexProgramHandle, MeshMan.DataName_Attrib[mPerVertexProgram_Attrib[i]]);
     }
 
-    //=============================================================================================================================//
-    //|||||||||||||||||||||||||||||||||||||| *** RENDER FUNCTIONS *** ||||||||||||||||||||||||||||||||||||||//
-    //=============================================================================================================================//
+    protected static void SetShaderAndUniforms_Pass2()
+    {
+        // Tell OpenGL to use this program when rendering.
+        GLES20.glUseProgram(mPass2ProgramHandle);
+
+        mMVPMatrixHandle = GLES20.glGetUniformLocation(mPass2ProgramHandle, "u_MVPMatrix");
+        mMVMatrixHandle = GLES20.glGetUniformLocation(mPass2ProgramHandle, "u_MVMatrix");
+        mTextureUniformHandle = GLES20.glGetUniformLocation(mPass2ProgramHandle, "u_Texture");
+
+        for(int i = 0; i < mPass2Program_Attrib.length; ++i)
+            mAttribHandles[mPass2Program_Attrib[i]] = GLES20.glGetAttribLocation(mPass2ProgramHandle, MeshMan.DataName_Attrib[mPass2Program_Attrib[i]]);
+    }
 
     /*************************************************************************************************
      * Setup: call BEFORE calling any render functions
      *************************************************************************************************/
-    public static void PreRender()
+    public static void Pass1()
     {
+        //Output buffer will be set to THIS FrameBuffer------------------------------//
+        GLES20.glBindFramebuffer(GLES20.GL_FRAMEBUFFER, gBuffer[0]);
+
+        GLES20.glClearColor(0.5f, 0.5f, 0.5f, 1.0f);
         GLES20.glClear(GLES20.GL_COLOR_BUFFER_BIT | GLES20.GL_DEPTH_BUFFER_BIT);
+        GLES20.glEnable(GLES20.GL_DEPTH_TEST);
 
-        //Light pos----------------------------------------------------//
-        LightPos[0] += 0.05f;
-        if(LightPos[0] >= 2.f)
-            LightPos[0] = -2.f;
-
-        SetShaderAndUniforms();
+        SetShaderAndUniforms_Pass1();
 
         // Calculate position of the light. Rotate and then push into the distance.
         Matrix.setIdentityM(mLightModelMatrix, 0);
         Matrix.translateM(mLightModelMatrix, 0, LightPos[0], LightPos[1], LightPos[2]);
         //Matrix.rotateM(mLightModelMatrix, 0, 20.f, 0.0f, 1.0f, 0.0f);
-       // Matrix.translateM(mLightModelMatrix, 0, 0.0f, 0.0f, 2.0f);
+        // Matrix.translateM(mLightModelMatrix, 0, 0.0f, 0.0f, 2.0f);
 
         Matrix.multiplyMV(mLightPosInWorldSpace, 0, mLightModelMatrix, 0, mLightPosInModelSpace, 0);
         Matrix.multiplyMV(mLightPosInEyeSpace, 0, mViewMatrix, 0, mLightPosInWorldSpace, 0);
     }
 
-    /*************************************************************************************************
-     * Setup: call AFTER calling any render functions
-     *************************************************************************************************/
-    public static void PostRender()
+    ///-------------------------------------------
+    public static void Pass2()
     {
-        // Draw a point to indicate the light.
-        GLES20.glUseProgram(mPointProgramHandle);
-        drawLight();
+        //use default frame buffer-----------------------------//
+        GLES20.glBindFramebuffer(GLES20.GL_FRAMEBUFFER, 0);
+
+        GLES20.glClearColor(1.0f, 0.0f, 1.0f, 1.0f); // Set clear color to white (not really necessery actually, since we won't be able to see behind the quad anyways)
+        GLES20.glClear(GLES20.GL_COLOR_BUFFER_BIT);
+        GLES20.glDisable(GLES20.GL_DEPTH_TEST); // We don't care about depth information when rendering a single quad
+
+        SetShaderAndUniforms_Pass2();
     }
+
+    //=============================================================================================================================//
+    //|||||||||||||||||||||||||||||||||||||| *** RENDER FUNCTIONS *** ||||||||||||||||||||||||||||||||||||||//
+    //=============================================================================================================================//
 
     /*************************************************************************************************
      * Draw a mesh with VBO combined buffer
@@ -439,6 +541,53 @@ public class View
         GLES20.glDrawArrays(GLES20.GL_TRIANGLES, 0, 36);
     }
 
+    /*************************************************************************************************
+     * Render G-Buffer
+     *************************************************************************************************/
+    public static void Render_G_Buffer()
+    {
+        SetTransMat_toIdentity();
+        //SetTransMat_toTranslate((float)mWidth * 0.5f, (float)mHeight * 0.5f, 0.f);
+        //SetTransMat_toScale((float) mWidth, (float)mHeight, 1.f);
+        SetTransMat_toTranslate(0.f, 0.f, -2.f);
+        SetTransMat_toScale(2.6f, 2.6f, 2.6f);
+
+        //texture assign----------------------------------------------------//
+        mTextureDataHandle = gTexture[0];
+
+        //pre render---------------------------------------------//
+        outputQuad.PreRender(mAttribHandles);
+
+        //=========================================================================================================//
+        /****************************************** Transformation ******************************************/
+        // This multiplies the view matrix by the model matrix, and stores the result in the MVP matrix
+        // (which currently contains model * view).
+        Matrix.multiplyMM(mMVPMatrix, 0, mViewMatrix, 0, mModelMatrix, 0);
+
+        // Pass in the modelview matrix.
+        GLES20.glUniformMatrix4fv(mMVMatrixHandle, 1, false, mMVPMatrix, 0);
+
+        // This multiplies the modelview matrix by the projection matrix, and stores the result in the MVP matrix
+        // (which now contains model * view * projection).
+        Matrix.multiplyMM(mMVPMatrix, 0, mProjectionMatrix, 0, mMVPMatrix, 0);
+
+        // Pass in the combined matrix.
+        GLES20.glUniformMatrix4fv(mMVPMatrixHandle, 1, false, mMVPMatrix, 0);
+
+        /****************************************** Texture ******************************************/
+        // Set the active texture unit to texture unit 0, ASSUMES ALL USES TEXTURE 0------------------//
+        GLES20.glActiveTexture(GLES20.GL_TEXTURE0);
+
+        // Bind the texture to this unit.
+        GLES20.glBindTexture(GLES20.GL_TEXTURE_2D, mTextureDataHandle);
+
+        // Tell the texture uniform sampler to use this texture in the shader by binding to texture unit 0.
+        GLES20.glUniform1i(mTextureUniformHandle, 0);
+
+        /****************************************** Draw ******************************************/
+        GLES20.glDrawArrays(GLES20.GL_TRIANGLES, 0, 6);
+    }
+
     /**
      * Draws a point representing the position of the light.
      */
@@ -463,9 +612,24 @@ public class View
     }
 
     /*************************************************************************************************
-     * Render text
+     * Setup: call AFTER calling any render functions
      *************************************************************************************************/
+    public static void PostRender()
+    {
+        //Light pos----------------------------------------------------//
+        LightPos[0] += 0.05f;
+        if(LightPos[0] >= 2.f)
+            LightPos[0] = -2.f;
 
+        //Unbind G-Buffer----------------------------------------------//
+        //GLES20.glBindFramebuffer(GLES20.GL_FRAMEBUFFER, 0);
+
+        //Set_G_Buffer();
+
+        // Draw a point to indicate the light.
+        //GLES20.glUseProgram(mPointProgramHandle);
+        //drawLight();
+    }
 
     /*************************************************************************************************
      * Set to mModelMatrix(TRANSFORMATION MAT) Identity

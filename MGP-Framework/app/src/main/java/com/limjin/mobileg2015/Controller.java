@@ -58,10 +58,16 @@ public class Controller implements Renderer
         scene1.Update();
 
         //pre render-------------------------------------------------//
-        View.PreRender();
+        View.Pass1();
 
         //Render active scene----------------------------------------------//
         scene1.Render();
+
+        //Setup pass2-----------------------------------//
+        View.Pass2();
+
+        //Render the combined G-Buffer-----------------------------------//
+        View.Render_G_Buffer();
 
         //pre render-------------------------------------------------//
         View.PostRender();

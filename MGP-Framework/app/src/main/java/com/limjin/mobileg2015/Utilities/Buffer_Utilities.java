@@ -4,6 +4,9 @@ package com.limjin.mobileg2015.Utilities;
  * Created by tanyiecher on 13/5/2016.
  */
 
+import android.opengl.GLES20;
+import android.opengl.GLUtils;
+
 import com.limjin.mobileg2015.Mesh;
 import com.limjin.mobileg2015.MeshMan;
 
@@ -12,6 +15,11 @@ import com.limjin.mobileg2015.MeshMan;
  *********************************************************************************************/
 public class Buffer_Utilities
 {
+    /* OpenGL es extensions */
+    public static final int DEPTH_STENCIL_OES                          = 0x84F9;
+    public static final int DEPTH24_STENCIL8_OES                       = 0x88F0;
+    public static final int UNSIGNED_INT_24_8_OES                        = 0x84FA;
+
     /*************************************************************************************************
      * Combine buffers: ASSUMES BUFFER HAVE THE FOLLOWING
      *************************************************************************************************/
@@ -49,83 +57,20 @@ public class Buffer_Utilities
         return combined;
     }
 
-//    /*************************************************************************************************
-//     * Combine buffers: ASSUMES BUFFER HAVE THE FOLLOWING
-//     *************************************************************************************************/
-//    public static float[] combinedBuffer(float[] vertices, float[] color, float[] normal, float[] texcoord)
-//    {
-//        /* total elements per vertex */
-//        int total_Elements = MeshMan.DataSize_Attrib[MeshMan.ATTRIBUTE_VERT] + MeshMan.DataSize_Attrib[MeshMan.ATTRIBUTE_COLOR]
-//                + MeshMan.DataSize_Attrib[MeshMan.ATTRIBUTE_NORMAL] + MeshMan.DataSize_Attrib[MeshMan.ATTRIBUTE_TEXTURE];
-//
-//        /* total vertices */
-//        int total_vert = vertices.length / MeshMan.DataSize_Attrib[MeshMan.ATTRIBUTE_VERT];
-//
-//        /* combined float buffer */
-//        float[] combined = new float[total_Elements * total_vert];
-//
-//        int vertCount = 0, colorCount = 0, normalCount = 0, texCount = 0;
-//        for(int i = 0; i < combined.length;)
-//        {
-//            //Pos-------------------------------------//
-//            combined[i++] = vertices[vertCount++];
-//            combined[i++] = vertices[vertCount++];
-//            combined[i++] = vertices[vertCount++];
-//
-//            //Color-------------------------------------//
-//            combined[i++] = color[colorCount++];
-//            combined[i++] = color[colorCount++];
-//            combined[i++] = color[colorCount++];
-//            combined[i++] = color[colorCount++];
-//
-//            //Normal-------------------------------------//
-//            combined[i++] = normal[normalCount++];
-//            combined[i++] = normal[normalCount++];
-//            combined[i++] = normal[normalCount++];
-//
-//            //Tex-------------------------------------//
-//            combined[i++] = texcoord[texCount++];
-//            combined[i++] = texcoord[texCount++];
-//        }
-//
-//        return combined;
-//    }
-//
-//    /*************************************************************************************************
-//     * Combine buffers: ASSUMES BUFFER HAVE THE FOLLOWING
-//     *************************************************************************************************/
-//    public static float[] combinedBuffer2(float[] vertices, float[] color, float[] normal)
-//    {
-//        /* total elements per vertex */
-//        int total_Elements = MeshMan.DataSize_Attrib[MeshMan.ATTRIBUTE_VERT] + MeshMan.DataSize_Attrib[MeshMan.ATTRIBUTE_COLOR]
-//                + MeshMan.DataSize_Attrib[MeshMan.ATTRIBUTE_NORMAL];
-//
-//        /* total vertices */
-//        int total_vert = vertices.length / MeshMan.DataSize_Attrib[MeshMan.ATTRIBUTE_VERT];
-//
-//        /* combined float buffer */
-//        float[] combined = new float[total_Elements * total_vert];
-//
-//        int vertCount = 0, colorCount = 0, normalCount = 0;
-//        for(int i = 0; i < combined.length;)
-//        {
-//            //Pos-------------------------------------//
-//            combined[i++] = vertices[vertCount++];
-//            combined[i++] = vertices[vertCount++];
-//            combined[i++] = vertices[vertCount++];
-//
-//            //Color-------------------------------------//
-//            combined[i++] = color[colorCount++];
-//            combined[i++] = color[colorCount++];
-//            combined[i++] = color[colorCount++];
-//            combined[i++] = color[colorCount++];
-//
-//            //Normal-------------------------------------//
-//            combined[i++] = normal[normalCount++];
-//            combined[i++] = normal[normalCount++];
-//            combined[i++] = normal[normalCount++];
-//        }
-//
-//        return combined;
-//    }
+    /*************************************************************************************************
+     * enerates a texture that is suited for attachments to a framebuffer
+     * add depth and stencil (FUTURE)
+     *************************************************************************************************/
+    public static int[] generateAttachmentTexture(int screenWidth, int screenHeight)
+    {
+        int[] textureID = new int[1];
+        GLES20.glGenTextures(1, textureID, 0);
+        GLES20.glBindTexture(GLES20.GL_TEXTURE_2D, textureID[0]);
+        GLES20.glTexImage2D(GLES20.GL_TEXTURE_2D, 0, GLES20.GL_RGB, screenWidth, screenHeight, 0, GLES20.GL_RGB, GLES20.GL_UNSIGNED_BYTE, null);
+        GLES20.glTexParameteri(GLES20.GL_TEXTURE_2D, GLES20.GL_TEXTURE_MIN_FILTER, GLES20.GL_LINEAR);
+        GLES20.glTexParameteri(GLES20.GL_TEXTURE_2D, GLES20.GL_TEXTURE_MAG_FILTER, GLES20.GL_LINEAR);
+        GLES20.glBindTexture(GLES20.GL_TEXTURE_2D, 0);
+
+        return textureID;
+    }
 }

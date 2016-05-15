@@ -5,6 +5,7 @@ package com.limjin.mobileg2015;
  */
 
 import android.opengl.GLES20;
+import android.opengl.GLU;
 
 import java.nio.FloatBuffer;
 

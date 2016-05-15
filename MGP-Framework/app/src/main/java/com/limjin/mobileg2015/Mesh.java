@@ -68,4 +68,12 @@ public abstract class Mesh
         //6) mCubePositions: The pointer to our buffer, containing all of the positional data.
         GLES20.glVertexAttribPointer(bufferHandle, dataSize, GLES20.GL_FLOAT, false, stride, startFromByte);
     }
+
+    /*************************************************************************************************
+     * Set texture
+     *************************************************************************************************/
+    public void SetTexture(int textureID)
+    {
+        Texture_Handle = textureID;
+    }
 }

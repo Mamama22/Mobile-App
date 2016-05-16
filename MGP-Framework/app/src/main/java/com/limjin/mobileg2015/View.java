@@ -117,7 +117,7 @@ public class View
 
     //Misc----------------------------//
     protected static float[] LightPos = new float[3];
-
+    protected static float screenRatio = 0.f;
     protected static Context context;
 
     //G-Buffer----------------------------//
@@ -147,8 +147,8 @@ public class View
         String frag_light = Misc_Utilities.readTextFileFromRawResource(context, R.raw.frag_light);
 
         //Pass2 shader------------------------------------------------------------------//
-        String vert_pass2 = Misc_Utilities.readTextFileFromRawResource(context, R.raw.vert_pass2);
-        String frag_pass2 = Misc_Utilities.readTextFileFromRawResource(context, R.raw.frag_pass2);
+        String vert_pass2 = Misc_Utilities.readTextFileFromRawResource(context, R.raw.vert_blur);
+        String frag_pass2 = Misc_Utilities.readTextFileFromRawResource(context, R.raw.frag_blur);
 
         //normal shader-------------------------------//
         vertexShaderHandle = LoadShader(GLES20.GL_VERTEX_SHADER, vert_texture1);
@@ -350,17 +350,34 @@ public class View
             */
         GLES20.glFramebufferTexture2D(GLES20.GL_FRAMEBUFFER, GLES20.GL_COLOR_ATTACHMENT0, GLES20.GL_TEXTURE_2D, gTexture[0], 0);
 
-        /* Render Buffer Object----------------------------------------------------------------------------- */
-        GLES20.glGenRenderbuffers(1, RBO, 0);
+        //Bind depth and stencil texture--------------------------------------------------------------//
+        GLES20.glGenTextures(1, gTex_Depth_Stencil, 0);
+        GLES20.glBindTexture(GLES20.GL_TEXTURE_2D, gTex_Depth_Stencil[0]);
+        GLES20.glTexParameterf(GLES20.GL_TEXTURE_2D, GLES20.GL_TEXTURE_MIN_FILTER, GLES20.GL_LINEAR);
+        GLES20.glTexImage2D(GLES20.GL_TEXTURE_2D, 0, Buffer_Utilities.DEPTH_STENCIL_OES,
+                mWidth, mHeight, 0, Buffer_Utilities.DEPTH_STENCIL_OES,
+                Buffer_Utilities.UNSIGNED_INT_24_8_OES, null);
 
-        //create a depth and stencil RBO----------------------------------//
-        GLES20.glBindRenderbuffer(GLES20.GL_RENDERBUFFER, RBO[0]);
-        GLES20.glRenderbufferStorage(GLES20.GL_RENDERBUFFER, Buffer_Utilities.DEPTH24_STENCIL8_OES, mWidth, mHeight);
+        GLES20.glFramebufferTexture2D(GLES20.GL_FRAMEBUFFER,
+                GLES20.GL_DEPTH_ATTACHMENT,
+                GLES20.GL_TEXTURE_2D, gTex_Depth_Stencil[0], 0);
+        GLES20.glFramebufferTexture2D(GLES20.GL_FRAMEBUFFER,
+                GLES20.GL_STENCIL_ATTACHMENT,
+                GLES20.GL_TEXTURE_2D, gTex_Depth_Stencil[0], 0);
 
-        /*bind the RBOs to our frame buffer------------------------------------------------------------------*/
-        GLES20.glFramebufferRenderbuffer(GLES20.GL_FRAMEBUFFER, Buffer_Utilities.DEPTH_STENCIL_OES, GLES20.GL_RENDERBUFFER, RBO[0]);
+        GLES20.glBindTexture(GLES20.GL_TEXTURE_2D, 0);
 
-        GLES20.glBindRenderbuffer(GLES20.GL_RENDERBUFFER, 0);   //unbind cos we do not need anymore
+//        /* Render Buffer Object (NO NEED FOR NOW?)------------------------------------------ */
+//        GLES20.glGenRenderbuffers(1, RBO, 0);
+//
+//        //create a depth and stencil RBO----------------------------------//
+//        GLES20.glBindRenderbuffer(GLES20.GL_RENDERBUFFER, RBO[0]);
+//        GLES20.glRenderbufferStorage(GLES20.GL_RENDERBUFFER, Buffer_Utilities.DEPTH24_STENCIL8_OES, mWidth, mHeight);
+//
+//        /*bind the RBOs to our frame buffer------------------------------------------------------------------*/
+//        GLES20.glFramebufferRenderbuffer(GLES20.GL_FRAMEBUFFER, Buffer_Utilities.DEPTH_STENCIL_OES, GLES20.GL_RENDERBUFFER, RBO[0]);
+//
+//        GLES20.glBindRenderbuffer(GLES20.GL_RENDERBUFFER, 0);   //unbind cos we do not need anymore
 
 
         //check if framebuffer compeltely set up---------------------------------//
@@ -407,6 +424,7 @@ public class View
         final float top = 0.5f;
         final float near = 1.0f;
         final float far = 100.0f;
+        screenRatio = ratio;
 
         Matrix.frustumM(mProjectionMatrix, 0, left, right, bottom, top, near, far);
         //Matrix.orthoM(mProjectionMatrix, 0, left, right, bottom, top, near, far);
@@ -550,7 +568,7 @@ public class View
         //SetTransMat_toTranslate((float)mWidth * 0.5f, (float)mHeight * 0.5f, 0.f);
         //SetTransMat_toScale((float) mWidth, (float)mHeight, 1.f);
         SetTransMat_toTranslate(0.f, 0.f, -2.f);
-        SetTransMat_toScale(2.6f, 2.6f, 2.6f);
+        SetTransMat_toScale(2.6f * screenRatio, 2.6f, 2.6f);
 
         //texture assign----------------------------------------------------//
         mTextureDataHandle = gTexture[0];

@@ -243,15 +243,15 @@ public class Mesh_Builder
     final static float[] quad_PositionData =
             {
                     // Front face
-                    -1.0f, 1.0f, 1.0f,
-                    -1.0f, -1.0f, 1.0f,
-                    1.0f, 1.0f, 1.0f,
-                    -1.0f, -1.0f, 1.0f,
-                    1.0f, -1.0f, 1.0f,
-                    1.0f, 1.0f, 1.0f,
+                    -0.5f, 0.5f, 1.0f,
+                    -0.5f, -0.5f, 1.0f,
+                    0.5f, 0.5f, 1.0f,
+                    -0.5f, -0.5f, 1.0f,
+                    0.5f, -0.5f, 1.0f,
+                    0.5f, 0.5f, 1.0f,
             };
 
-    final static float[] quadFBO_TextureCoordinateData =
+    final static float[] quadFBO_TextureCoordinateDataFliped =
             {
                     // Front face
                     0.0f, 1.0f,
@@ -261,6 +261,47 @@ public class Mesh_Builder
                     1.0f, 0.0f,
                     1.0f, 1.0f,
             };
+
+    final static float[] quad_PositionData_startLeft =
+            {
+                    // Front face
+                    0.f, 1.f, 1.0f,
+                    0.f, 0.f, 1.0f,
+                    1.f, 1.f, 1.0f,
+                    0.f, 0.f, 1.0f,
+                    1.f, 0.f, 1.0f,
+                    1.f, 1.f, 1.0f,
+            };
+
+    final static float[] quadFBO_TextureCoordinateData =
+            {
+                    // Front face
+                    0.0f, 0.0f,
+                    0.0f, 1.0f,
+                    1.0f, 0.0f,
+                    0.0f, 1.0f,
+                    1.0f, 1.0f,
+                    1.0f, 0.0f,
+            };
+
+    /*************************************************************************************************
+     * Generate a copy of the array
+     *************************************************************************************************/
+    private static float[] CopyArray(float[] copyMe, int times)
+    {
+        float[] returnMe = new float[copyMe.length * times];
+        int count = 0;
+
+        for(int k = 0; k < times; ++k)
+        {
+            for (int i = 0; i < copyMe.length; ++i)
+            {
+                returnMe[count++] = copyMe[i];
+            }
+        }
+
+        return returnMe;
+    }
 
     /*************************************************************************************************
     * Utilities: Gen Attributes:
@@ -348,7 +389,54 @@ public class Mesh_Builder
         //populate buffer (FOLLOW THE ORDER IN ATTRUBTES)------------------------------------//
         float[][] bufferList = new float[2][];
         bufferList[0] = quad_PositionData;
-        bufferList[1] = quadFBO_TextureCoordinateData;
+        bufferList[1] = quadFBO_TextureCoordinateDataFliped;
+
+        //Combine buffer------------------------------------------------------------//
+        float[] combinedBuffer = Buffer_Utilities.combinedBuffer(bufferList, attributes);
+
+        //Create mesh--------------------------------------------------------------//
+        MeshVBO_combined mesh = new MeshVBO_combined();
+        mesh.Init(attributes, combinedBuffer);
+
+        mesh.Texture_Handle = MeshMan.textureID_List[texture_ID];
+
+        return mesh;
+    }
+
+    /*************************************************************************************************
+     * Quad for FBO Generator: tilemap
+     *************************************************************************************************/
+    public static MeshVBO_combined GenerateTilemap_FBO(int texture_ID, int xNum, int yNum)
+    {
+        /** Attributes-----------------------------------------------------------**/
+        int[] attributes = new int[2];
+        attributes[0] = MeshMan.ATTRIBUTE_VERT;
+        attributes[1] = MeshMan.ATTRIBUTE_TEXTURE;
+
+        //populate buffer (FOLLOW THE ORDER IN ATTRUBTES)------------------------------------//
+        int total = xNum * yNum;
+        float[][] bufferList = new float[2][];
+        bufferList[0] = CopyArray(quad_PositionData_startLeft, total);
+        bufferList[1] = CopyArray(quadFBO_TextureCoordinateData, total);
+
+        int tCount = 0;
+        float xLength = 1.f / xNum; //total lenght per unit X
+        float yLength = 1.f / yNum;
+
+        for(int y = 0; y < yNum; ++y)
+        {
+            for(int x = 0; x < xNum; ++x)
+            {
+                //tex---------------------------------------//
+                for(int i = 0; i < quadFBO_TextureCoordinateData.length; i += 2)
+                {
+                    //for example: ori value is 0.f and X count is 0, xLen * 0 + xLen * 0
+                    bufferList[1][tCount + 0] = (xLength * x) + (xLength * bufferList[1][tCount + 0]);
+                    bufferList[1][tCount + 1] = (yLength * y) + (yLength * bufferList[1][tCount + 1]);
+                    tCount += 2;
+                }
+            }
+        }
 
         //Combine buffer------------------------------------------------------------//
         float[] combinedBuffer = Buffer_Utilities.combinedBuffer(bufferList, attributes);

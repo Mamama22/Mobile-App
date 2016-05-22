@@ -22,7 +22,8 @@ public class MeshMan
     /*************** Texture ID enum ***************/
     public static final int TEX_NONE = 0;   //no texture? pass this in
     public static final int TEX_FACEBOOK = 1;
-    public static final int TEX_RECYCLE = 2;
+    public static final int TEX_FONT_1 = 2;
+    public static final int TEX_RECYCLE = 3;
     public static final int TOTAL_TEX = TEX_RECYCLE + 1;
 
     /*************** Color ID enum ***************/
@@ -66,6 +67,8 @@ public class MeshMan
         textureID_List[TEX_NONE] = -1;
         textureID_List[TEX_FACEBOOK] = Misc_Utilities.loadTexture(Misc_Utilities.GetCurrentContext(),
                 R.drawable.com_facebook_button_icon_blue);
+        textureID_List[TEX_FONT_1] = Misc_Utilities.loadTexture(Misc_Utilities.GetCurrentContext(),
+                R.drawable.ar_christy);
         textureID_List[TEX_RECYCLE] = Misc_Utilities.loadTexture(Misc_Utilities.GetCurrentContext(),
                 R.drawable.rubbish);
     }

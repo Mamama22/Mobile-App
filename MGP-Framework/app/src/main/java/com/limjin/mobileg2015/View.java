@@ -147,9 +147,6 @@ public class View
     protected static int[] gBuffer1 = new int[1];   //G-Buffer (Framebuffer type)
     protected static int[] gTexture1 = new int[1];
 
-    protected static int[] gBuffer2 = new int[1];   //G-Buffer (Framebuffer type)
-    protected static int[] gTexture2 = new int[1];
-
     //For framebuffer--------------------------//
     protected static MeshVBO_combined outputQuad;
     protected static MeshVBO_combined outputTextQuad;
@@ -487,14 +484,14 @@ public class View
         //widht and height not available except for this
         int[][] FBO1_list = Set_G_Buffer(true, true);
         int[][] FBO2_list = Set_G_Buffer(true, false);
-        int[][] FBO3_list = Set_G_Buffer(true, false);
+        //int[][] FBO3_list = Set_G_Buffer(true, false);
 
         //the original tex to write to------------------------------//
         gBuffer = FBO1_list[0];gTexture = FBO1_list[1];gTex_Depth_Stencil = FBO1_list[2];
 
         //subsequent post-processing texes for swapping--------------------------//
         gBuffer1 = FBO2_list[0];gTexture1 = FBO2_list[1];
-        gBuffer2 = FBO3_list[0];gTexture2 = FBO3_list[1];
+        //gBuffer2 = FBO3_list[0];gTexture2 = FBO3_list[1];
 
         //Need recreate shaders everytime reset?-----------------------//
         mSurfaceCreated = false;
@@ -614,13 +611,22 @@ public class View
         else
         {
             //switch buffers-----------------------------//
-            if (swapFBO == false) {
+            if (swapFBO == false)
                 GLES20.glBindFramebuffer(GLES20.GL_FRAMEBUFFER, gBuffer1[0]);
-            }
-            else {
-                GLES20.glBindFramebuffer(GLES20.GL_FRAMEBUFFER, gBuffer2[0]);
-            }
+            else
+                GLES20.glBindFramebuffer(GLES20.GL_FRAMEBUFFER, gBuffer[0]);
         }
+
+        //switch textures-----------------------------//
+        if (swapFBO == false)
+            outputQuad.Texture_Handle = gTexture[0];
+        else
+            outputQuad.Texture_Handle = gTexture1[0];
+
+
+        //swap state---------------------------------------------//
+        swapFBO = !swapFBO;
+
 
         //if is first pass, ALWAYS USE gTexture---------------------------------------------//
         if(firstPass == true)
@@ -771,17 +777,6 @@ public class View
 
         /****************************************** Draw ******************************************/
         GLES20.glDrawArrays(GLES20.GL_TRIANGLES, 0, 6);
-
-        //switch buffers-----------------------------//
-        if (swapFBO == false) {
-            outputQuad.Texture_Handle = gTexture1[0];
-        }
-        else {
-            outputQuad.Texture_Handle = gTexture2[0];
-        }
-
-        //swap state---------------------------------------------//
-        swapFBO = !swapFBO;
     }
 
     /*************************************************************************************************
